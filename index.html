@@ -1,0 +1,1627 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0e0d18">
+<title>Deepwick</title>
+<style>
+:root { color-scheme: dark; font-family: ui-monospace, Menlo, Consolas, monospace; color: #ece6d6; background: #060510; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; touch-action: none; user-select: none; -webkit-user-select: none; }
+body { height: 100vh; height: 100dvh; }
+canvas { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+button, input { font: inherit; }
+button { color: #ece6d6; background: rgba(12,10,22,.94); border: 1px solid #8d713e; border-radius: 3px; padding: 10px 14px; cursor: pointer; min-height: 42px; }
+button:hover { background: #302332; border-color: #ffd25e; }
+button:active { transform: translateY(1px); }
+button:focus-visible, input:focus-visible { outline: 2px solid #ffd25e; outline-offset: 3px; }
+button:disabled { opacity: .4; cursor: default; }
+button.gold { color: #ffd25e; border-color: #ffd25e; }
+[hidden] { display: none !important; }
+.panel { background: rgba(12,10,22,.8); border: 1px solid #8d713e; border-radius: 3px; }
+#hud { position: fixed; inset: 0; pointer-events: none; }
+#stats { position: absolute; top: max(10px, env(safe-area-inset-top)); left: max(10px, env(safe-area-inset-left)); width: 150px; padding: 9px; font-size: 11px; line-height: 1.55; }
+.bar { position: relative; height: 21px; margin-bottom: 5px; background: #191524; overflow: hidden; border: 1px solid #4a3b45; }
+.bar > i { display: block; position: absolute; inset: 0 auto 0 0; width: 100%; background: #a83241; }
+.bar > span { position: relative; z-index: 1; display: block; text-align: center; font-size: 12px; line-height: 19px; text-shadow: 0 1px #0e0d18; }
+#oil > i { background: #886b2e; }
+.xp { height: 3px; margin: 1px 0 6px; background: #292335; }
+.xp > i { display: block; height: 100%; width: 0; background: #b49fcb; }
+#pauseButton { position: absolute; right: max(10px, env(safe-area-inset-right)); top: max(10px, env(safe-area-inset-top)); pointer-events: auto; font-size: 12px; }
+#bossBox { position: absolute; top: max(10px, env(safe-area-inset-top)); left: 50%; transform: translateX(-50%); width: clamp(130px, calc(100vw - 360px - env(safe-area-inset-left) - env(safe-area-inset-right)), 280px); padding: 8px; text-align: center; font-size: 12px; }
+#bossBox .bossName { color: #ffd25e; margin-bottom: 6px; white-space: nowrap; }
+#bossHealth { height: 15px; margin-bottom: 0; }
+#bossHealth > i { background: #8b52c4; }
+#bossHealth > span { font-size: 10px; line-height: 13px; }
+#bossBox.enraged { border-color: #c4343f; }
+#bossBox.enraged #bossHealth > i { background: #c4343f; }
+#actions { position: absolute; right: max(10px, env(safe-area-inset-right)); bottom: max(10px, env(safe-area-inset-bottom)); display: flex; gap: 6px; pointer-events: auto; }
+#actions button { padding: 8px 12px; min-width: 58px; font-size: 12px; }
+.badge { display: inline-block; min-width: 13px; margin-left: 4px; padding: 0 2px; color: #ffd25e; background: #302433; border-radius: 2px; font-size: 10px; }
+.key { display: block; margin-top: 4px; opacity: .5; font-size: 9px; }
+#log { position: absolute; left: max(12px, env(safe-area-inset-left)); bottom: max(14px, env(safe-area-inset-bottom)); max-width: min(510px, calc(100vw - 390px - env(safe-area-inset-left) - env(safe-area-inset-right))); font-size: 11px; line-height: 1.6; text-shadow: 0 1px 2px #000, 1px 0 3px #000; }
+#log div:nth-last-child(3) { opacity: .45; }
+#log div:nth-last-child(2) { opacity: .7; }
+#callout { position: fixed; pointer-events: none; top: 21%; left: 0; right: 0; text-align: center; font-size: clamp(16px, 2.6vw, 25px); color: #ffd25e; text-shadow: 0 2px #060510, 0 0 18px #060510; padding: 0 8px; white-space: nowrap; }
+#overlay { position: fixed; inset: 0; padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); display: flex; align-items: center; justify-content: center; background: rgba(5,4,12,.48); }
+#overlay.title { background: rgba(5,4,12,.25); }
+.screen { width: min(100%, 460px); max-height: 100%; overflow-y: auto; overscroll-behavior: contain; padding: 30px; text-align: center; box-shadow: 0 12px 80px #0008; }
+h1, h2 { font-weight: 500; color: #ffd25e; margin: 0 0 13px; }
+h1 { font-size: clamp(34px, 7vw, 54px); letter-spacing: 5px; text-shadow: 3px 3px #6e4428; }
+h2 { font-size: 25px; }
+.tagline { margin: 0 0 23px; font-size: 13px; color: #bcb0bd; }
+.instructions { font-size: 12px; line-height: 1.95; text-align: left; display: inline-block; margin: 0 auto 20px; }
+.instructions p { margin: 0; }
+.screen > button { display: block; margin: 12px auto 0; min-width: 160px; }
+.best { font-size: 11px; color: #c3aa71; margin: 12px 0; }
+.endCopy { font-size: 12px; line-height: 1.8; margin: 14px 0; }
+.sound { font-size: 12px; display: block; margin: 20px 0 0; cursor: pointer; }
+.sound input { accent-color: #ffd25e; vertical-align: middle; margin-right: 6px; }
+#hover { position: fixed; pointer-events: none; font-size: 11px; padding: 5px 8px; z-index: 2; }
+body.keyboard, body.keyboard button { cursor: none; }
+@media (max-width: 559px) {
+  #log { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 76px); left: max(10px, env(safe-area-inset-left)); right: max(10px, env(safe-area-inset-right)); max-width: none; font-size: 10px; line-height: 1.4; }
+  #log div { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; }
+  #callout { top: max(21%, 190px); font-size: 16px; }
+  #actions { gap: 5px; }
+  #actions button { padding-left: 10px; padding-right: 10px; }
+  #bossBox { top: calc(max(10px, env(safe-area-inset-top)) + 52px); left: calc(max(10px, env(safe-area-inset-left)) + 160px); right: max(10px, env(safe-area-inset-right)); transform: none; width: auto; font-size: 11px; padding: 7px; }
+  .screen { padding: 23px 17px; }
+}
+@media (max-width: 380px) {
+  #stats { width: 118px; padding: 7px; font-size: 10px; }
+  #level { display: block; }
+  #floorDot { display: none; }
+  #bossBox { left: calc(max(10px, env(safe-area-inset-left)) + 128px); }
+  #actions button { padding-left: 8px; padding-right: 8px; min-width: 48px; font-size: 11px; }
+}
+@media (max-height: 639px) {
+  .screen { padding: 16px; }
+  h1 { font-size: 35px; margin-bottom: 7px; }
+  h2 { font-size: 22px; margin-bottom: 8px; }
+  .tagline { font-size: 11px; margin-bottom: 12px; }
+  .instructions { font-size: 10px; line-height: 1.75; margin-bottom: 8px; }
+  .screen > button { margin-top: 8px; min-height: 36px; padding: 7px 14px; }
+  .best { margin: 8px 0; font-size: 10px; }
+  .endCopy { margin: 10px 0; font-size: 11px; }
+  .sound { margin-top: 14px; }
+}
+@media (hover: none) { .key { display: none; } #log { bottom: calc(max(10px, env(safe-area-inset-bottom)) + 62px); } }
+@media (prefers-reduced-motion: reduce) { button:active { transform: none; } }
+</style>
+</head>
+<body>
+<canvas id="dungeon" aria-label="Deepwick dungeon. Use the arrow keys or WASD to move." role="img"></canvas>
+<div id="hud" hidden>
+  <div id="stats" class="panel">
+    <div id="hp" class="bar"><i></i><span>20 / 20</span></div>
+    <div id="oil" class="bar"><i></i><span>Oil 100</span></div>
+    <div class="xp"><i id="xpFill"></i></div>
+    <div><span id="floorText">Floor 1 / 8</span><span id="floorDot"> · </span><span id="level">Lv 1</span></div>
+    <div id="combatText">Atk 3 · Def 0</div>
+  </div>
+  <button id="pauseButton" aria-label="Pause">Pause</button>
+  <div id="bossBox" class="panel" hidden>
+    <div class="bossName">The Moth Queen</div>
+    <div id="bossHealth" class="bar"><i></i><span>110 / 110</span></div>
+  </div>
+  <div id="actions">
+    <button id="descendButton" class="gold" aria-label="Descend" hidden>Descend<span class="key">Enter</span></button>
+    <button id="potionButton" aria-label="Potion" disabled>Potion<span id="potionCount" class="badge">0</span><span class="key">Q</span></button>
+    <button id="bombButton" aria-label="Bomb" disabled>Bomb<span id="bombCount" class="badge">0</span><span class="key">E</span></button>
+    <button id="waitButton" aria-label="Wait">Wait<span class="key">Space</span></button>
+  </div>
+  <div id="log" role="log" aria-live="polite"></div>
+</div>
+<div id="callout" hidden></div>
+<div id="hover" class="panel" hidden></div>
+<div id="overlay" class="title">
+  <section id="titleScreen" class="screen panel" aria-labelledby="titleHeading">
+    <h1 id="titleHeading">Deepwick</h1>
+    <p class="tagline">Eight floors down. One lantern.</p>
+    <div class="instructions">
+      <p>Move: arrow keys, WASD or swipe</p>
+      <p>Tap or click a tile to walk there</p>
+      <p>Walk into a monster to attack</p>
+      <p>Space: wait a turn</p>
+      <p>Q: potion · E: bomb</p>
+      <p>Enter: take the stairs down</p>
+      <p>Pause: P · Sound: M</p>
+    </div>
+    <p id="titleBest" class="best" hidden></p>
+    <button id="playButton" class="gold" aria-label="Play">Play</button>
+  </section>
+  <section id="pauseScreen" class="screen panel" aria-labelledby="pauseHeading" hidden>
+    <h2 id="pauseHeading">Paused</h2>
+    <button id="resumeButton" class="gold" aria-label="Resume">Resume</button>
+    <button id="restartButton" aria-label="Restart">Restart</button>
+    <label class="sound"><input id="soundToggle" type="checkbox" checked>Sound</label>
+  </section>
+  <section id="endScreen" class="screen panel" aria-labelledby="endHeading" hidden>
+    <h2 id="endHeading">You fell</h2>
+    <p id="endCause" class="endCopy"></p>
+    <p id="endStats" class="endCopy"></p>
+    <p id="endBest" class="best" hidden></p>
+    <p id="practiceNote" class="best" hidden>Practice start: not recorded</p>
+    <button id="againButton" class="gold" aria-label="Play Again">Play Again</button>
+  </section>
+</div>
+<script>
+'use strict';
+(() => {
+  const W = 40, H = 28;
+  const DIRS = [[0,-1],[0,1],[-1,0],[1,0]];
+  const PALETTE = { k:'#0e0d18', d:'#211c27', g:'#3a3443', s:'#4f4e69', l:'#77768f', p:'#a7a3b8', w:'#f1ead8', y:'#ffd25e', o:'#ef8a2b', r:'#c4343f', b:'#3d63c9', c:'#63d2df', n:'#6e4428', t:'#e7b48a', v:'#8b52c4', m:'#4f8a3c' };
+  const SPRITE_ROWS = {
+    floor0: 'gggggggd gggggggd gggggggd gggggggd gggggggd gggggggd gggggggd dddddddd',
+    floor1: 'gggggggd gggggggd ggdggggd gggdgggd gggdgggd ggggdggd gggggggd dddddddd',
+    floor2: 'gggggggd ggggsggd gggggggd gsgggggd gggggggd gggggsgd gggggggd dddddddd',
+    wallFace: 'pppppppp lllgsssg lllgsssg gggggggg sglllgss sglllgss gggggggg dddddddd',
+    wallTop: 'dddddddd dkdddddd dddddkdd dddddddd ddkddddd dddddddd dddddkdd dddddddd',
+    stairs: 'lppppppl kkkkkkkk dllllllk dkkkkkkd ddssssdd ddkkkkdd dddggddd dddkkddd',
+    player: '..kkk... .kbbbk.. .kbttk.. ..kbk.k. .kbbbkyk kbbnbtyk .kbbbkk. .kk.kk..',
+    rat: '........ ........ .....k.k ....kllk .kkkllrl kllllllk rkllllk. r.k..k..',
+    beetle: '.k....k. ..k..k.. ..kkkk.. .koyyok. kookkook kookkook .kokkok. k.k..k.k',
+    archer: '..ppp... ..kpk.n. ..ppp..n .pppppln ..ppp..n ..p.p.n. ..p.p... .pp.pp..',
+    ogre: '.kkkkk.. kmmmmmk. kmymymk. kmmmmmkn .kmrmk.n kmmmmmmn kmmmmmk. .kk.kk..',
+    wraith: '..vvvv.. .vvvvvv. .vcvvcv. .vvvvvv. vvvvvvvv vvvvvvvv v.vv.vv. .v..v..v',
+    moth: '........ p.k..k.p pp.kk.pp plpnnplp plpnnplp .pp..pp. ..p..p.. ........',
+    queen: '.k............k. ..k..........k.. ...k..kkkk..k... vv..k.knnk.k..vv vvvv..krrk..vvvv vvvvv.knnk.vvvvv vvyyvvnnnnvvyyvv vyoovvnnnnvvooyv vyoovvnnnnvvooyv vvyyvvnnnnvvyyvv vvvvvvnnnnvvvvvv .vvvvpnnnnpvvvv. ..vvvppnnppvvv.. ...vvp.nn.pvv... ....v..nn..v.... .......kk.......',
+    potion: '...kk... ...pp... ..kppk.. .krrrrk. .krprrk. .krrrrk. .krrrrk. ..kkkk..',
+    bomb: '......y. .....o.. ....k... ..kkkk.. .kggggk. .kgsggk. .kggggk. ..kkkk..',
+    oil: '...kk... ..kllk.. .kyyyyk. .kyooyk. .kyooyk. .kyyyyk. ..kkkk.. ........',
+    atk: '......kp .....kpk ....kpk. ...kpk.. .nkpk... ..nk.... .n.n.... n.......',
+    def: '.kkkkkk. kbbybbbk kbbybbbk kyyyyyyk kbbybbbk .kbybbk. ..kbbk.. ...kk...'
+  };
+  const canvas = document.getElementById('dungeon');
+  const ctx = canvas.getContext('2d', { alpha:false });
+  const $ = id => document.getElementById(id);
+  const sprites = [0,1,2].map(biome => {
+    const colors = { ...PALETTE };
+    if (biome === 1) Object.assign(colors, {s:'#44584d',l:'#66836f',p:'#97b394'});
+    if (biome === 2) Object.assign(colors, {s:'#5a3c56',l:'#87586f',p:'#b98c9f'});
+    return Object.fromEntries(Object.entries(SPRITE_ROWS).flatMap(([name, text]) => [false,true].map(hit => {
+      const rows = text.split(' '), sprite = document.createElement('canvas');
+      sprite.width = rows[0].length; sprite.height = rows.length;
+      const c = sprite.getContext('2d');
+      rows.forEach((row,y) => [...row].forEach((letter,x) => {
+        if (letter !== '.') {
+          const hex=colors[letter];
+          c.fillStyle=hit ? `rgb(${[1,3,5].map(i=>{ const v=parseInt(hex.slice(i,i+2),16); return Math.round(v+(255-v)*.35); }).join(',')})` : hex;
+          c.fillRect(x,y,1,1);
+        }
+      }));
+      return [name+(hit?'Hit':''),sprite];
+    })));
+  });
+  const params = new URLSearchParams(location.search);
+  const seedText = params.get('seed');
+  const fixedSeed = seedText !== null && /^\d+$/.test(seedText) && Number.isSafeInteger(Number(seedText)) ? Number(seedText) >>> 0 : null;
+  const floorText=params.get('floor');
+  const practiceFloor=floorText!==null && /^\d+$/.test(floorText) && Number(floorText)>=1 && Number(floorText)<=8 ? Number(floorText) : null;
+  const makePlayer = () => ({ x:0,y:0,facing:1,hp:20,maxHp:20,atk:3,def:0,level:1,xp:0,xpNext:10,oil:100,potions:0,bombs:0 });
+  const game = window.game = {
+    screen:'title', paused:false, seed:fixedSeed ?? (Date.now() >>> 0), floor:1, turn:0,
+    player:makePlayer(), map:{w:W,h:H,rows:Array(H).fill('#'.repeat(W))}, rooms:[],
+    entry:{x:0,y:0}, stairs:null, seen:Array(W*H).fill(0), visible:Array(W*H).fill(0), light:6,
+    monsters:[], items:[], boss:null, dust:0, kills:0, log:[], cause:'', practice:false,
+    rngState:0, nextId:1, best:null, sound:true, stairsNoticed:false, inSight:[], knownMonsters:[], hintSeen:false,
+    pendingMonsters:[], bossAnnounced:false, settingUp:false, focused:true,
+    walk:null, demo:null,
+    input:{ held:null, nextRepeat:0, pointer:null, hover:null, panelScroll:null },
+    view:{ width:0,height:0,dpr:1,size:24 },
+    visual:{ camX:0,camY:0,light:6,lastFrame:0,time:0,queenFall:null,reduced:false,
+      motions:{},particles:[],numbers:[],motes:[],floorAt:-1000,hurtAt:-1000,
+      shakeAt:-1000,shakePower:0,shakeLength:1,shakeX:0,shakeY:0 },
+    audio:{ ctx:null,failed:false,master:null,runBus:null,endBus:null,ambient:null,
+      noise:null,drones:[],voices:[],last:{},floor:0,mode:'',nextDrip:0,nextHeart:0 },
+    ui:{ callout:'',calloutAt:0,callouts:[],endAt:0,restartUntil:0 }
+  };
+  game.rngState=game.seed;
+  try {
+    const best = JSON.parse(localStorage.getItem('deepwick.best'));
+    if (best && Number.isInteger(best.floor) && best.floor >= 1 && best.floor <= 8 &&
+        typeof best.won === 'boolean' && [best.turns,best.kills,best.level].every(Number.isFinite)) game.best = best;
+  } catch (_) { /* Storage can be unavailable on file URLs. */ }
+  try { game.sound = localStorage.getItem('deepwick.sound') !== 'false'; } catch (_) {}
+  try {
+    const preference=window.matchMedia('(prefers-reduced-motion: reduce)');
+    game.visual.reduced=preference.matches;
+    preference.addEventListener('change',event=>{
+      game.visual.reduced=event.matches;
+      if(event.matches) { game.visual.motions={}; game.visual.shakeX=0; game.visual.shakeY=0; }
+    });
+  } catch (_) {}
+
+  const EFFECT_COLORS={rat:PALETTE.l,beetle:PALETTE.o,archer:PALETTE.p,ogre:PALETTE.m,wraith:PALETTE.v,moth:PALETTE.p,queen:PALETTE.v};
+  function monsterColor(m) {
+    if(m.type==='rat') return game.floor>=7?'#87586f':game.floor>=4?'#66836f':PALETTE.l;
+    if(m.type==='archer' || m.type==='moth') return game.floor>=7?'#b98c9f':game.floor>=4?'#97b394':PALETTE.p;
+    return EFFECT_COLORS[m.type];
+  }
+  const motionKey=m=>'m'+m.id;
+  function actorPosition(key,x,y) {
+    const motion=game.visual.motions[key];
+    if(!motion || game.visual.reduced) return {x,y};
+    const t=Math.max(0,Math.min(1,(game.visual.time-motion.at)/motion.duration));
+    if(motion.kind==='move') {
+      const ease=1-(1-t)**2;
+      return {x:motion.fromX+(x-motion.fromX)*ease,y:motion.fromY+(y-motion.fromY)*ease-Math.sin(t*Math.PI)*.14};
+    }
+    const amount=Math.sin(t*Math.PI)*motion.strength;
+    return {x:x+motion.dx*amount,y:y+motion.dy*amount};
+  }
+  function animateMove(key,fromX,fromY,toX,toY) {
+    if(game.visual.reduced) return;
+    game.visual.motions[key]={kind:'move',fromX,fromY,toX,toY,at:game.visual.time,duration:100};
+  }
+  function lunge(key,dx,dy,strength=.23) {
+    if(game.visual.reduced) return;
+    game.visual.motions[key]={kind:'lunge',dx,dy,strength,at:game.visual.time,duration:100};
+  }
+  function burst(x,y,color,count=10,speed=2) {
+    if(game.settingUp) return;
+    const particles=game.visual.particles;
+    for(let i=0;i<count && particles.length<240;i++) {
+      const angle=Math.random()*Math.PI*2,velocity=(.3+Math.random()*.7)*speed;
+      particles.push({x,y,vx:Math.cos(angle)*velocity,vy:Math.sin(angle)*velocity-.25,
+        age:0,life:.22+Math.random()*.42,color,size:.55+Math.random()*.55,gravity:2.1});
+    }
+  }
+  function damageNumber(x,y,amount,color) {
+    game.visual.numbers.push({x,y,text:String(amount),color,age:0,life:.8});
+    if(game.visual.numbers.length>24) game.visual.numbers.shift();
+  }
+  function shake(power=.15,length=190) {
+    if(game.visual.reduced) return;
+    game.visual.shakeAt=game.visual.time; game.visual.shakePower=Math.max(game.visual.shakePower,power);
+    game.visual.shakeLength=length;
+  }
+  function impact(x,y,kind) {
+    burst(x,y,PALETTE.g,16,3);
+    burst(x,y,kind==='blast'||kind==='bomb'?PALETTE.o:PALETTE.p,14,3.6);
+    if(Math.hypot(x-game.player.x,y-game.player.y)<=game.light+2) shake(kind==='smash' ? .18 : .14,210);
+    sound(kind);
+  }
+
+  // Audio has its own cosmetic randomness. Neither audio nor particles consume runRandom().
+  // Note rows: source, start Hz, end Hz, seconds, gain, wave/filter, delay seconds.
+  const SOUNDS={
+    step:{gap:75,notes:[['noise',1000,650,.045,.035,'lowpass',0],['tone',120,65,.045,.02,'sine',0]]},
+    bump:{gap:90,notes:[['tone',90,50,.08,.04,'triangle',0],['noise',350,160,.06,.025,'lowpass',0]]},
+    hit:{gap:40,notes:[['tone',240,100,.07,.025,'square',0],['noise',2200,1100,.07,.045,'bandpass',0]]},
+    hurt:{gap:70,notes:[['tone',110,48,.14,.035,'sawtooth',0],['noise',900,450,.16,.045,'bandpass',0]]},
+    kill:{gap:70,notes:[['tone',300,80,.16,.035,'triangle',0],['noise',1600,700,.12,.05,'lowpass',0]]},
+    pickup:{gap:80,notes:[['tone',620,960,.09,.03,'sine',0],['tone',960,1200,.1,.025,'sine',.07]]},
+    potion:{gap:160,notes:[['tone',400,800,.18,.04,'sine',0],['noise',2500,3500,.16,.02,'bandpass',0]]},
+    bomb:{gap:100,notes:[['noise',500,160,.22,.07,'lowpass',0],['tone',80,35,.24,.06,'sine',0]]},
+    blast:{gap:90,notes:[['noise',650,150,.28,.08,'lowpass',0],['tone',65,28,.28,.07,'triangle',0]]},
+    hiss:{gap:180,notes:[['noise',4500,6500,.27,.028,'highpass',0],['tone',600,900,.25,.008,'triangle',0]]},
+    aim:{gap:120,notes:[['tone',500,800,.1,.02,'sine',0],['tone',800,1000,.08,.018,'sine',.07]]},
+    arrow:{gap:85,notes:[['noise',4000,1800,.11,.04,'bandpass',0],['tone',950,380,.07,.018,'triangle',0]]},
+    windup:{gap:180,notes:[['tone',85,150,.32,.025,'triangle',0],['noise',600,1000,.26,.02,'lowpass',0]]},
+    smash:{gap:120,notes:[['noise',300,100,.3,.08,'lowpass',0],['tone',55,28,.25,.06,'sine',0]]},
+    wraith:{gap:180,notes:[['tone',440,160,.3,.025,'sine',0],['tone',451,164,.3,.015,'sine',0]]},
+    moth:{gap:180,notes:[['noise',5000,3800,.08,.025,'highpass',0],['tone',1050,700,.07,.008,'triangle',0]]},
+    level:{gap:240,notes:[['tone',440,440,.14,.03,'triangle',0],['tone',554.37,554.37,.16,.03,'triangle',.09],['tone',659.25,659.25,.25,.03,'triangle',.18]]},
+    stairs:{gap:200,notes:[['tone',330,180,.2,.03,'triangle',0],['tone',220,110,.23,.025,'triangle',.08]]},
+    dim:{gap:250,notes:[['tone',200,80,.32,.025,'sine',0]]},
+    horn:{gap:900,notes:[['tone',110,104,.8,.035,'sawtooth',0],['tone',165,156,.8,.018,'sine',0],['tone',220,208,.8,.01,'sine',0]]},
+    wings:{gap:180,notes:[['noise',1000,450,.35,.055,'bandpass',0],['tone',72,56,.22,.03,'sine',0]]},
+    dive:{gap:180,notes:[['tone',200,65,.24,.03,'sawtooth',0],['noise',1800,3800,.24,.05,'highpass',0]]},
+    brood:{gap:180,notes:[['noise',4500,3000,.25,.025,'bandpass',0],['tone',600,850,.12,.018,'triangle',0],['tone',850,1100,.12,.015,'triangle',.08]]},
+    drip:{gap:400,notes:[['tone',1600,800,.16,.02,'sine',0],['noise',3500,1800,.04,.012,'bandpass',0]]},
+    heart:{gap:400,notes:[['tone',62,40,.14,.055,'sine',0],['tone',55,38,.16,.04,'sine',.17]]},
+    win:{gap:1000,terminal:true,notes:[['tone',261.63,261.63,.55,.045,'triangle',0],['tone',329.63,329.63,.65,.04,'triangle',.13],['tone',392,392,.85,.04,'triangle',.26],['tone',523.25,523.25,1.1,.04,'sine',.43]]},
+    death:{gap:700,terminal:true,notes:[['tone',150,35,.65,.06,'sine',0],['noise',500,120,.34,.04,'lowpass',.05]]}
+  };
+  function audioFault() {
+    const a=game.audio; a.failed=true;
+    try { if(a.master) a.master.gain.value=0; if(a.ctx && a.ctx.state!=='closed') a.ctx.close().catch(()=>{}); } catch (_) {}
+  }
+  function primeAudio() {
+    const a=game.audio;
+    if(a.failed) return;
+    try {
+      if(!a.ctx) {
+        const Audio=window.AudioContext || window.webkitAudioContext;
+        if(!Audio) { a.failed=true; return; }
+        const ac=a.ctx=new Audio();
+        const compressor=ac.createDynamicsCompressor();
+        compressor.threshold.value=-22; compressor.knee.value=16; compressor.ratio.value=8;
+        compressor.attack.value=.004; compressor.release.value=.2;
+        a.master=ac.createGain(); a.master.gain.value=game.sound ? .35 : 0;
+        a.master.connect(compressor); compressor.connect(ac.destination);
+        a.runBus=ac.createGain(); a.endBus=ac.createGain(); a.ambient=ac.createGain();
+        a.runBus.gain.value=0; a.endBus.gain.value=0; a.ambient.gain.value=.025;
+        a.runBus.connect(a.master); a.endBus.connect(a.master); a.ambient.connect(a.runBus);
+        a.noise=ac.createBuffer(1,Math.ceil(ac.sampleRate),ac.sampleRate);
+        const samples=a.noise.getChannelData(0);
+        for(let i=0;i<samples.length;i++) samples[i]=Math.random()*2-1;
+        for(const [frequency,wave,gain] of [[55,'sine',1],[82.5,'triangle',.35]]) {
+          const oscillator=ac.createOscillator(),level=ac.createGain();
+          oscillator.type=wave; oscillator.frequency.value=frequency; level.gain.value=gain;
+          oscillator.connect(level); level.connect(a.ambient); oscillator.start();
+          a.drones.push({oscillator,frequency});
+        }
+        a.nextDrip=performance.now()+4500;
+      }
+      if(a.ctx.state==='suspended' || a.ctx.state==='interrupted') a.ctx.resume().then(()=>{
+        syncAudio(); if(game.screen==='play' && game.turn===0) sound('stairs');
+      }).catch(()=>{});
+      syncAudio();
+    } catch (_) { audioFault(); }
+  }
+  function syncAudio() {
+    const a=game.audio;
+    if(!a.ctx || a.failed) return;
+    try {
+      const active=game.focused && !document.hidden && !game.paused;
+      const mode=`${game.sound}:${active}:${game.screen}`;
+      if(mode!==a.mode) {
+        a.mode=mode; const now=a.ctx.currentTime;
+        for(const [param,value] of [[a.master.gain,game.sound ? .35 : 0],[a.runBus.gain,active && game.screen==='play'?1:0],[a.endBus.gain,active && (game.screen==='dead'||game.screen==='won')?1:0]]) {
+          param.cancelScheduledValues(now); param.setTargetAtTime(value,now,.008);
+        }
+      }
+      if(a.floor!==game.floor) {
+        a.floor=game.floor;
+        for(const drone of a.drones) drone.oscillator.frequency.setTargetAtTime(drone.frequency*.95**(game.floor-1),a.ctx.currentTime,.25);
+      }
+    } catch (_) { audioFault(); }
+  }
+  function audioNote(row,bus) {
+    const a=game.audio,ac=a.ctx;
+    if(a.voices.length>=24) return;
+    const [kind,frequency,end,duration,volume,shape,delay]=row;
+    const start=ac.currentTime+delay,envelope=ac.createGain();
+    const source=kind==='noise'?ac.createBufferSource():ac.createOscillator();
+    let filter=null;
+    if(kind==='noise') {
+      source.buffer=a.noise; source.loop=true;
+      filter=ac.createBiquadFilter(); filter.type=shape; filter.Q.value=.8;
+      filter.frequency.setValueAtTime(frequency,start); filter.frequency.exponentialRampToValueAtTime(end,start+duration);
+      source.connect(filter); filter.connect(envelope);
+    } else {
+      source.type=shape; source.frequency.setValueAtTime(frequency,start);
+      source.frequency.exponentialRampToValueAtTime(end,start+duration); source.connect(envelope);
+    }
+    envelope.gain.setValueAtTime(0,start);
+    envelope.gain.linearRampToValueAtTime(volume,start+.008);
+    envelope.gain.exponentialRampToValueAtTime(.0001,start+duration);
+    envelope.gain.setValueAtTime(0,start+duration+.008); envelope.connect(bus);
+    const voice={source,envelope,filter}; a.voices.push(voice);
+    source.onended=()=>{
+      try { source.disconnect(); envelope.disconnect(); if(filter) filter.disconnect(); } catch (_) {}
+      a.voices=a.voices.filter(v=>v!==voice);
+    };
+    source.start(start); source.stop(start+duration+.012);
+  }
+  function sound(name) {
+    const a=game.audio,preset=SOUNDS[name];
+    if(!preset || game.settingUp || !game.sound || game.paused || !game.focused || document.hidden || !a.ctx || a.failed) return;
+    if(preset.terminal ? game.screen!=='dead' && game.screen!=='won' : game.screen!=='play') return;
+    const now=performance.now();
+    if(now-(a.last[name]??-Infinity)<preset.gap) return;
+    try {
+      if(a.ctx.state!=='running') return;
+      a.last[name]=now; syncAudio();
+      for(const row of preset.notes) audioNote(row,preset.terminal?a.endBus:a.runBus);
+    } catch (_) { audioFault(); }
+  }
+  function audioTick(now) {
+    syncAudio();
+    const a=game.audio;
+    if(!a.ctx || a.failed || !game.sound || !game.focused || document.hidden || game.paused || game.screen!=='play') return;
+    if(now>=a.nextDrip) { a.nextDrip=now+6500+Math.random()*9500; sound('drip'); }
+    if(game.boss && game.boss.awake && !game.boss.dead && now>=a.nextHeart) {
+      a.nextHeart=now+(game.boss.enraged?620:960); sound('heart');
+    }
+  }
+
+  // Layout RNGs are local to a floor; the combat RNG lives in game and never feeds layout.
+  function mulberry32(seed) {
+    let state = seed >>> 0;
+    return () => {
+      state = (state + 0x6D2B79F5) >>> 0;
+      let t = state;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function runRandom() {
+    game.rngState = (game.rngState + 0x6D2B79F5) >>> 0;
+    let t = game.rngState;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+  const inside = (x,y) => Number.isInteger(x) && Number.isInteger(y) && x >= 0 && x < W && y >= 0 && y < H;
+  const at = (map,x,y) => inside(x,y) ? map.rows[y][x] : '#';
+  const tile = (x,y) => at(game.map,x,y);
+  const centre = r => ({x:r.x+Math.floor(r.w/2), y:r.y+Math.floor(r.h/2)});
+  function distanceMap(map, startX, startY) {
+    const dist = Array(W*H).fill(Infinity), queue = [{x:startX,y:startY}];
+    dist[startY*W+startX] = 0;
+    for (let i=0; i<queue.length; i++) {
+      const p = queue[i];
+      for (const [dx,dy] of DIRS) {
+        const x=p.x+dx, y=p.y+dy, index=y*W+x;
+        if (at(map,x,y) === '#' || dist[index] !== Infinity) continue;
+        dist[index] = dist[p.y*W+p.x]+1;
+        queue.push({x,y});
+      }
+    }
+    return dist;
+  }
+  const MONSTER_STATS = {
+    rat:{name:'rat',hp:4,def:0,xp:1,damage:2},
+    beetle:{name:'fire beetle',hp:5,def:0,xp:2,damage:6},
+    archer:{name:'skeleton archer',hp:6,def:0,xp:3,damage:2},
+    ogre:{name:'ogre',hp:18,def:1,xp:6,damage:7},
+    wraith:{name:'wraith',hp:8,def:0,xp:4,damage:3},
+    moth:{name:'moth',hp:2,def:0,xp:1,damage:1},
+    queen:{name:'Moth Queen',hp:110,def:1,xp:0,damage:8}
+  };
+  const FLOOR_MIX = [null,
+    [['rat',1]],
+    [['rat',.65],['beetle',.35]],
+    [['rat',.4],['beetle',.3],['archer',.3]],
+    [['rat',.25],['beetle',.3],['archer',.3],['ogre',.15]],
+    [['rat',.15],['beetle',.25],['archer',.3],['ogre',.15],['wraith',.15]],
+    [['rat',.1],['beetle',.25],['archer',.25],['ogre',.2],['wraith',.2]],
+    [['beetle',.25],['archer',.3],['ogre',.2],['wraith',.25]]
+  ];
+  function makeMonster(type,id,x,y,awake=false) {
+    const stats=MONSTER_STATS[type];
+    return { id,type,...stats,x,y,maxHp:stats.hp,awake,dead:false,intent:null,facing:1,rest:0,flashUntil:0,exploded:false,noReward:false,enraged:false };
+  }
+  function makeQueenFloor() {
+    const cells=Array.from({length:H},()=>Array(W).fill('#'));
+    for(let y=0;y<H;y++) for(let x=0;x<W;x++) if((x+.5-20)**2+(y+.5-10)**2<=7.6**2) cells[y][x]='.';
+    for(const [x,y] of [[15,6],[24,6],[15,13],[24,13]]) cells[y][x]='#';
+    for(let y=18;y<=20;y++) for(let x=19;x<=20;x++) cells[y][x]='.';
+    for(let y=21;y<=25;y++) for(let x=15;x<=24;x++) cells[y][x]='.';
+    return {
+      map:{w:W,h:H,rows:cells.map(row=>row.join(''))},
+      rooms:[{x:12,y:2,w:16,h:16},{x:15,y:21,w:10,h:5}],
+      entry:{x:20,y:23},stairs:null,
+      monsters:[makeMonster('queen',800,19,9)],
+      items:[{kind:'potion',x:16,y:22},{kind:'oil',x:23,y:22}]
+    };
+  }
+  function makeFloor(seed, number) {
+    if(number===8) return makeQueenFloor();
+    const random = mulberry32((seed ^ Math.imul(number,0x9E3779B1)) >>> 0);
+    const integer = (a,b) => a+Math.floor(random()*(b-a+1));
+    let rooms;
+    // A failed packing consumes the same stream and tries again, never reseeding.
+    do {
+      rooms = [];
+      const count = integer(6,9);
+      for (let tries=0; tries<400 && rooms.length<count; tries++) {
+        const w=integer(5,10), h=integer(4,7);
+        const r={x:integer(1,W-w-1),y:integer(1,H-h-1),w,h};
+        if (rooms.some(o => r.x <= o.x+o.w && r.x+r.w >= o.x && r.y <= o.y+o.h && r.y+r.h >= o.y)) continue;
+        rooms.push(r);
+      }
+    } while (rooms.length < 6);
+    rooms.sort((a,b) => centre(a).x-centre(b).x || centre(a).y-centre(b).y);
+    const cells=Array.from({length:H},()=>Array(W).fill('#'));
+    for (const r of rooms) for (let y=r.y;y<r.y+r.h;y++) for (let x=r.x;x<r.x+r.w;x++) cells[y][x]='.';
+    function connect(a,b) {
+      let {x,y}=centre(a); const end=centre(b), horizontalFirst=random()<.5;
+      const horizontal=()=>{ while(x!==end.x) { cells[y][x]='.'; x+=Math.sign(end.x-x); } cells[y][x]='.'; };
+      const vertical=()=>{ while(y!==end.y) { cells[y][x]='.'; y+=Math.sign(end.y-y); } cells[y][x]='.'; };
+      if(horizontalFirst) { horizontal(); vertical(); } else { vertical(); horizontal(); }
+    }
+    for (let i=0;i<rooms.length-1;i++) connect(rooms[i],rooms[i+1]);
+    for (let i=0;i<2;i++) { const k=integer(0,rooms.length-3); connect(rooms[k],rooms[k+2]); }
+    const startIndex=integer(0,rooms.length-1), entry=centre(rooms[startIndex]);
+    const map={w:W,h:H,rows:cells.map(r=>r.join(''))}, distances=distanceMap(map,entry.x,entry.y);
+    let farIndex=0;
+    for (let i=1;i<rooms.length;i++) {
+      const c=centre(rooms[i]), f=centre(rooms[farIndex]);
+      if (distances[c.y*W+c.x]>distances[f.y*W+f.x]) farIndex=i;
+    }
+    let stairs=null;
+    if(number<8) {
+      const r=rooms[farIndex];
+      stairs={x:integer(r.x+1,r.x+r.w-2),y:integer(r.y+1,r.y+r.h-2)};
+      cells[stairs.y][stairs.x]='>'; map.rows=cells.map(r=>r.join(''));
+    }
+    const candidates=[];
+    rooms.forEach((r,i)=>{
+      if(i===startIndex) return;
+      for(let y=r.y;y<r.y+r.h;y++) for(let x=r.x;x<r.x+r.w;x++) {
+        if(distances[y*W+x]>5 && !(stairs && stairs.x===x && stairs.y===y)) candidates.push({x,y});
+      }
+    });
+    for(let i=candidates.length-1;i>0;i--) { const j=integer(0,i); [candidates[i],candidates[j]]=[candidates[j],candidates[i]]; }
+    const monsters=[],items=[],used=new Set(),count=[0,4,5,6,6,7,7,8][number];
+    function placeItem(kind) {
+      const p=candidates.find(q=>!used.has(q.y*W+q.x));
+      if(p) { items.push({kind,x:p.x,y:p.y}); used.add(p.y*W+p.x); }
+    }
+    placeItem('oil');
+    if(number>=3 && random()<.5) placeItem('oil');
+    placeItem('potion');
+    if(number>=4 && random()<.4) placeItem('potion');
+    if(number%2===0 || random()<.25) placeItem('bomb');
+    if(number>=2) placeItem(random()<.5?'atk':'def');
+    function chooseType() {
+      let roll=random();
+      for(const [type,chance] of FLOOR_MIX[number]) { roll-=chance; if(roll<0) return type; }
+      return FLOOR_MIX[number].at(-1)[0];
+    }
+    for(const p of candidates) {
+      if(monsters.length>=count) break;
+      if(used.has(p.y*W+p.x)) continue;
+      const type=chooseType();
+      monsters.push(makeMonster(type,number*100+monsters.length,p.x,p.y)); used.add(p.y*W+p.x);
+      if(type==='rat' && monsters.length<count && random()<.5) {
+        const neighbours=DIRS.map(([dx,dy])=>({x:p.x+dx,y:p.y+dy})).filter(q=>
+          at(map,q.x,q.y)==='.' && distances[q.y*W+q.x]>5 && !used.has(q.y*W+q.x) &&
+          !(q.x===entry.x && q.y===entry.y));
+        if(neighbours.length) {
+          const q=neighbours[integer(0,neighbours.length-1)];
+          monsters.push(makeMonster('rat',number*100+monsters.length,q.x,q.y)); used.add(q.y*W+q.x);
+        }
+      }
+    }
+    return {map,rooms,entry,stairs,monsters,items};
+  }
+  function lineClear(map,x0,y0,x1,y1) {
+    const dx=Math.abs(x1-x0), dy=-Math.abs(y1-y0), sx=x0<x1?1:-1, sy=y0<y1?1:-1;
+    let err=dx+dy, x=x0, y=y0;
+    while(x!==x1 || y!==y1) {
+      const twice=err*2;
+      if(twice>=dy) { err+=dy; x+=sx; }
+      if(twice<=dx) { err+=dx; y+=sy; }
+      if(x===x1 && y===y1) return true;
+      if(at(map,x,y)==='#') return false;
+    }
+    return true;
+  }
+  function sightFor(map,px,py,radius) {
+    const visible=Array(W*H).fill(0), floors=[];
+    for(let y=Math.max(0,Math.ceil(py-radius-.5));y<=Math.min(H-1,Math.floor(py+radius+.5));y++) {
+      for(let x=Math.max(0,Math.ceil(px-radius-.5));x<=Math.min(W-1,Math.floor(px+radius+.5));x++) {
+        if(Math.hypot(x-px,y-py)<=radius+.5 && lineClear(map,px,py,x,y)) {
+          visible[y*W+x]=1;
+          if(at(map,x,y)!=='#') floors.push({x,y});
+        }
+      }
+    }
+    for(const p of floors) for(const [dx,dy] of DIRS) {
+      const x=p.x+dx,y=p.y+dy;
+      if(inside(x,y) && at(map,x,y)==='#') visible[y*W+x]=1;
+    }
+    return visible;
+  }
+  function stopWalk() { game.walk=null; }
+  function stopInput() { stopWalk(); game.input.held=null; game.input.pointer=null; game.input.panelScroll=null; }
+  function log(message) { game.log.push(message); if(game.log.length>60) game.log.shift(); }
+  function callout(message,priority=false) {
+    const now=performance.now();
+    if(priority) { game.ui.callout=''; game.ui.callouts=[]; }
+    if(game.ui.callout && now-game.ui.calloutAt<2100) {
+      if(game.ui.callouts.at(-1)!==message && game.ui.callout!==message) game.ui.callouts.push(message);
+    } else { game.ui.callout=message; game.ui.calloutAt=now; }
+  }
+  function monsterTiles(m) {
+    return m.type==='queen' ? [{x:m.x,y:m.y},{x:m.x+1,y:m.y},{x:m.x,y:m.y+1},{x:m.x+1,y:m.y+1}] : [{x:m.x,y:m.y}];
+  }
+  const covers=(m,x,y)=>monsterTiles(m).some(t=>t.x===x && t.y===y);
+  function monsterAt(x,y) { return game.monsters.find(m=>!m.dead && covers(m,x,y)) || null; }
+  function monsterDistance(m,x,y,diagonal=false) {
+    return Math.min(...monsterTiles(m).map(t=>diagonal?Math.max(Math.abs(t.x-x),Math.abs(t.y-y)):Math.hypot(t.x-x,t.y-y)));
+  }
+  function adjacent(m,x=game.player.x,y=game.player.y) {
+    return monsterTiles(m).some(t=>Math.abs(t.x-x)+Math.abs(t.y-y)===1);
+  }
+  function monsterVisible(m) {
+    return !m.dead && (m.type==='wraith' ? monsterDistance(m,game.player.x,game.player.y)<=game.light+.5 : monsterTiles(m).some(t=>game.visible[t.y*W+t.x]));
+  }
+  function lightRadius() {
+    const oil=game.player.oil;
+    return Math.min(game.dust>0?2:6,oil>66?6:oil>33?5:oil>0?4:3);
+  }
+  function updateLight() {
+    const radius=lightRadius();
+    if(radius!==game.light) {
+      log(radius<game.light?'Your light dims.':'Your light grows.');
+      if(radius<game.light) sound('dim');
+    }
+    game.light=radius;
+  }
+  function changeOil(value) {
+    const before=game.player.oil;
+    game.player.oil=Math.max(0,Math.min(100,value));
+    updateLight();
+    if(before>0 && game.player.oil===0) log('Your lantern is out of oil. Only a faint glow remains.');
+  }
+  function refreshSight() {
+    updateLight();
+    game.visible=sightFor(game.map,game.player.x,game.player.y,game.light);
+    for(let i=0;i<W*H;i++) if(game.visible[i]) game.seen[i]=1;
+    const previous=game.inSight;
+    game.inSight=game.monsters.filter(monsterVisible).map(m=>m.id);
+    const newlySeen=game.inSight.filter(id=>!game.knownMonsters.includes(id));
+    game.knownMonsters.push(...newlySeen);
+    for(const m of game.monsters) if(game.inSight.includes(m.id) || (m.type==='wraith' && monsterDistance(m,game.player.x,game.player.y)<=8)) m.awake=true;
+    if(game.boss && game.boss.awake && !game.boss.dead) announceQueen(game.boss);
+    if(game.walk) {
+      const interrupt=game.walk.targetId!==null ? newlySeen.some(id=>id!==game.walk.targetId) : game.inSight.some(id=>!previous.includes(id));
+      if(interrupt) stopWalk();
+    }
+    if(game.inSight.length && !game.hintSeen && game.screen==='play') {
+      game.hintSeen=true; callout('Walk into it to attack');
+      log('Walk into a monster, or tap it, to attack it.');
+    }
+    if(game.stairs && game.player.x===game.stairs.x && game.player.y===game.stairs.y && !game.stairsNoticed) {
+      game.stairsNoticed=true; callout('Stairs down');
+    }
+  }
+  function loadFloor(n) {
+    const floor=makeFloor(game.seed,n);
+    game.floor=n; game.map=floor.map; game.rooms=floor.rooms; game.entry=floor.entry;
+    game.stairs=floor.stairs; game.monsters=floor.monsters; game.items=floor.items;
+    game.nextId=n*100+game.monsters.length; game.boss=game.monsters.find(m=>m.type==='queen') || null;
+    game.bossAnnounced=false; game.dust=0; game.pendingMonsters=[]; game.visual.queenFall=null;
+    Object.assign(game.visual,{motions:{},particles:[],numbers:[],motes:[],floorAt:game.visual.time,hurtAt:-1000,shakeAt:-1000,shakePower:0,shakeX:0,shakeY:0});
+    game.player.x=game.entry.x; game.player.y=game.entry.y;
+    game.seen=Array(W*H).fill(0); game.visible=Array(W*H).fill(0);
+    game.stairsNoticed=false; game.inSight=[]; game.knownMonsters=[]; game.input.hover=null; stopInput();
+    game.ui.callout=''; game.ui.callouts=[];
+    callout(n===8?'The deepest floor':`Floor ${n}`);
+    log(n===8?'A wing stirs in the darkness.':`You enter floor ${n}.`);
+    refreshSight();
+    game.visual.camX=game.player.x+.5; game.visual.camY=game.player.y+.5; game.visual.light=game.light;
+    sound('stairs'); syncAudio();
+  }
+  function restart(seed) {
+    const value=seed===undefined ? fixedSeed ?? Date.now() : Number(seed);
+    game.seed=Number.isFinite(value)?value>>>0:Date.now()>>>0;
+    game.rngState=game.seed; game.screen='play'; game.paused=false; game.turn=0;
+    game.player=makePlayer(); game.light=6; game.dust=0; game.kills=0; game.log=[]; game.cause=''; game.practice=practiceFloor!==null;
+    game.ui.endAt=0; game.ui.restartUntil=0;
+    game.settingUp=true;
+    if(game.practice) applyPracticeBuild(practiceFloor);
+    game.settingUp=false;
+    loadFloor(practiceFloor ?? 1);
+    if(game.practice) log(`Practice start on floor ${practiceFloor}. This run is not recorded.`);
+    updateDOM(performance.now());
+    return game.seed;
+  }
+  function start() { return restart(); }
+  const PRACTICE_BUILDS = [null,
+    {level:1,atk:0,def:0,potions:0,bombs:0,oil:100},
+    {level:1,atk:0,def:0,potions:1,bombs:0,oil:80},
+    {level:1,atk:1,def:0,potions:1,bombs:1,oil:65},
+    {level:2,atk:1,def:1,potions:2,bombs:0,oil:70},
+    {level:3,atk:2,def:1,potions:2,bombs:1,oil:65},
+    {level:4,atk:2,def:2,potions:3,bombs:1,oil:45},
+    {level:4,atk:3,def:2,potions:3,bombs:1,oil:40},
+    {level:5,atk:3,def:3,potions:3,bombs:1,oil:30}
+  ];
+  function applyPracticeBuild(floor) {
+    const build=PRACTICE_BUILDS[floor],p=game.player;
+    while(p.level<build.level) { p.xp=p.xpNext; levelUps(); }
+    p.atk+=build.atk; p.def=build.def; p.potions=build.potions; p.bombs=build.bombs; p.oil=build.oil;
+    game.light=lightRadius();
+    // The build uses ordinary level-ups; its setup messages aren't part of the run.
+    game.log=[]; game.ui.callout=''; game.ui.callouts=[];
+  }
+  function bestLine() { return game.best ? game.best.won ? `Best clear: ${game.best.turns.toLocaleString('en-US')} turns` : `Deepest: floor ${game.best.floor}` : ''; }
+  function recordBest() {
+    if(game.practice) return;
+    const next={floor:game.floor,won:game.screen==='won',turns:game.turn,kills:game.kills,level:game.player.level}, old=game.best;
+    const better=!old || (next.won && !old.won) || (next.won && old.won && next.turns<old.turns) ||
+      (!next.won && !old.won && (next.floor>old.floor || (next.floor===old.floor && next.kills>old.kills)));
+    if(better) {
+      game.best=next;
+      try { localStorage.setItem('deepwick.best',JSON.stringify(next)); } catch (_) {}
+    }
+  }
+  function endRun() {
+    game.screen='dead'; game.paused=false; stopInput();
+    game.ui.endAt=performance.now(); game.ui.callout=''; game.ui.callouts=[];
+    if(!game.cause) game.cause=`You fell on floor ${game.floor}.`;
+    syncAudio(); sound('death');
+    recordBest();
+  }
+  function winRun(queen) {
+    game.screen='won'; game.paused=false; stopInput();
+    game.ui.endAt=performance.now();
+    game.cause='The Moth Queen is gone and your lantern still burns.';
+    game.visual.queenFall={x:queen.x+.5,y:queen.y+.5,at:game.ui.endAt,effectAt:game.visual.time};
+    game.visual.hurtAt=-1000;
+    burst(queen.x+.5,queen.y+.5,PALETTE.y,64,4.5);
+    game.boss=null;
+    callout('The Moth Queen falls',true);
+    syncAudio(); sound('win');
+  }
+  function hitPlayer(raw,source,message) {
+    if(game.player.hp<=0) return 0;
+    const damage=Math.max(1,raw-game.player.def);
+    game.player.hp=Math.max(0,game.player.hp-damage); stopWalk();
+    game.visual.hurtAt=game.visual.time;
+    damageNumber(game.player.x,game.player.y,damage,'#ef7181');
+    burst(game.player.x,game.player.y,PALETTE.r,7,1.7); sound('hurt');
+    log(message(damage));
+    if(game.player.hp<=0) game.cause=`Slain by ${source==='Moth Queen'?'the':/^[aeiou]/i.test(source)?'an':'a'} ${source} on floor ${game.floor}.`;
+    return damage;
+  }
+  function hitMonster(m,damage) {
+    if(m.dead) return;
+    const inView=monsterVisible(m);
+    m.awake=true; m.hp=Math.max(0,m.hp-damage); m.flashUntil=performance.now()+170;
+    if(inView) {
+      const offset=m.type==='queen' ? .5 : 0;
+      damageNumber(m.x+offset,m.y+offset,damage,PALETTE.y);
+      burst(m.x+offset,m.y+offset,monsterColor(m),9,2); sound('hit');
+    }
+    if(m.type==='queen') announceQueen(m);
+    if(m.hp<=0) {
+      m.dead=true; log(`The ${m.name} falls.`);
+      if(inView) { burst(m.x,m.y,monsterColor(m),18,2.8); sound('kill'); }
+      if(m.type==='beetle' && m.intent?.kind==='blast') explode(m,false);
+      if(m.type==='queen') {
+        // Her death ends the brood too; no list is shortened inside an action.
+        for(const other of game.monsters) if(other!==m && !other.dead) hitMonster(other,other.hp);
+        for(const other of game.pendingMonsters) if(!other.dead) hitMonster(other,other.hp);
+      }
+    }
+    if(m.type==='queen' && !m.dead) enrageQueen(m);
+  }
+  function explode(m,suicide) {
+    if(m.exploded) return;
+    // Mark first: a neighbouring lit beetle may chain back to this one.
+    m.exploded=true; m.dead=true; m.hp=0; m.noReward=suicide; m.intent=null;
+    log('The fire beetle explodes!');
+    impact(m.x,m.y,'blast');
+    if(monsterDistance(m,game.player.x,game.player.y,true)<=1) hitPlayer(6,m.name,n=>`The blast hits you for ${n}!`);
+    for(const other of game.monsters) if(other!==m && !other.dead && monsterDistance(other,m.x,m.y,true)<=1) hitMonster(other,6);
+  }
+  function free(x,y,throughWalls=false) {
+    return inside(x,y) && x>0 && y>0 && x<W-1 && y<H-1 &&
+      (throughWalls || tile(x,y)!=='#') && !monsterAt(x,y) && !game.pendingMonsters.some(m=>!m.dead && covers(m,x,y)) && !(game.player.x===x && game.player.y===y);
+  }
+  function moveMonster(m,x,y) {
+    const visible=monsterVisible(m);
+    animateMove(motionKey(m),m.x,m.y,x,y);
+    if(visible && m.type!=='wraith') burst(m.x,m.y+.3,m.type==='moth'?monsterColor(m):PALETTE.g,2,.5);
+    if(visible && m.type==='moth') sound('moth');
+    if(x!==m.x) m.facing=x>m.x?1:-1; m.x=x; m.y=y;
+  }
+  function stepCloser(m) {
+    const distances=distanceMap(game.map,game.player.x,game.player.y);
+    let best=distances[m.y*W+m.x], next=null;
+    for(const [dx,dy] of DIRS) {
+      const x=m.x+dx,y=m.y+dy,d=distances[y*W+x];
+      if(free(x,y) && d<best) { best=d; next={x,y}; }
+    }
+    if(next) moveMonster(m,next.x,next.y);
+  }
+  function melee(m,verb='bites',damage=m.damage,oil=0) {
+    lunge(motionKey(m),Math.sign(game.player.x-m.x),Math.sign(game.player.y-m.y));
+    if(m.type==='wraith' || m.type==='moth') sound(m.type);
+    const spread=Math.floor(runRandom()*3)-1;
+    hitPlayer(damage+spread,m.name,n=>`The ${m.name} ${verb} you for ${n}${oil?` and drinks ${oil} oil`:''}.`);
+    if(oil) changeOil(game.player.oil-oil);
+  }
+  function aimTiles(m) {
+    const p=game.player,dx=p.x-m.x,dy=p.y-m.y;
+    if((dx!==0 && dy!==0) || Math.abs(dx)+Math.abs(dy)>6 || (dx===0 && dy===0) || !lineClear(game.map,m.x,m.y,p.x,p.y)) return null;
+    const tiles=[],sx=Math.sign(dx),sy=Math.sign(dy);
+    for(let i=1;i<=6;i++) {
+      const x=m.x+sx*i,y=m.y+sy*i;
+      if(tile(x,y)==='#') break;
+      tiles.push({x,y});
+    }
+    return tiles;
+  }
+  function archerTurn(m) {
+    if(m.intent) {
+      const tiles=m.intent.tiles; m.intent=null;
+      if(tiles.length) lunge(motionKey(m),Math.sign(tiles[0].x-m.x),Math.sign(tiles[0].y-m.y),.14);
+      sound('arrow');
+      for(const t of tiles) {
+        if(t.x===game.player.x && t.y===game.player.y) {
+          hitPlayer(4,m.name,n=>`An arrow hits you for ${n}.`); break;
+        }
+        const target=monsterAt(t.x,t.y);
+        if(target) { log(`An arrow hits the ${target.name} for 4.`); hitMonster(target,4); break; }
+      }
+      return;
+    }
+    const tiles=aimTiles(m);
+    if(tiles) { m.intent={kind:'shot',tiles}; log('The skeleton archer takes aim.'); sound('aim'); return; }
+    const distances=distanceMap(game.map,game.player.x,game.player.y), own=distances[m.y*W+m.x];
+    if(own<=2) {
+      let best=own,next=null;
+      for(const [dx,dy] of DIRS) {
+        const x=m.x+dx,y=m.y+dy,d=distances[y*W+x];
+        if(free(x,y) && d>best) { best=d; next={x,y}; }
+      }
+      if(next) moveMonster(m,next.x,next.y);
+      else if(adjacent(m)) melee(m,'hits',2);
+      return;
+    }
+    for(const [dx,dy] of DIRS) {
+      const x=m.x+dx,y=m.y+dy;
+      if(free(x,y) && aimTiles({x,y})) { moveMonster(m,x,y); return; }
+    }
+    stepCloser(m);
+  }
+  function announceQueen(m) {
+    if(!game.bossAnnounced && m.awake && !m.dead && m.hp>0) {
+      game.bossAnnounced=true; callout('The Moth Queen',true);
+      log('The Moth Queen unfurls her wings.');
+      sound('horn');
+    }
+  }
+  function enrageQueen(m) {
+    if(!m.enraged && m.hp>0 && m.hp<=m.maxHp/2) {
+      m.enraged=true; m.rest=Math.min(m.rest,1); callout('The Moth Queen is enraged',true);
+      log('The Moth Queen is enraged!');
+      sound('horn');
+    }
+  }
+  function queenFits(m,x,y) {
+    const tiles=[{x,y},{x:x+1,y},{x,y:y+1},{x:x+1,y:y+1}];
+    return tiles.every(t=>tile(t.x,t.y)!=='#' && !(t.x===game.player.x && t.y===game.player.y) &&
+      !game.monsters.some(other=>other!==m && !other.dead && covers(other,t.x,t.y)) &&
+      !game.pendingMonsters.some(other=>!other.dead && covers(other,t.x,t.y)));
+  }
+  function queenStep(m) {
+    const distances=distanceMap(game.map,game.player.x,game.player.y);
+    const distance=(x,y)=>Math.min(distances[y*W+x],distances[y*W+x+1],distances[(y+1)*W+x],distances[(y+1)*W+x+1]);
+    let best=distance(m.x,m.y),next=null;
+    for(const [dx,dy] of DIRS) {
+      const x=m.x+dx,y=m.y+dy;
+      if(queenFits(m,x,y) && distance(x,y)<best) { best=distance(x,y); next={x,y}; }
+    }
+    if(next) moveMonster(m,next.x,next.y);
+  }
+  function queenRing(m) {
+    const tiles=[];
+    for(let y=m.y-1;y<=m.y+2;y++) for(let x=m.x-1;x<=m.x+2;x++) if(inside(x,y) && !covers(m,x,y)) tiles.push({x,y});
+    return tiles;
+  }
+  function queenLane(m) {
+    const p=game.player;
+    let dx=0,dy=0;
+    if((p.x===m.x || p.x===m.x+1) && p.y<=m.y-2) dy=-1;
+    else if((p.x===m.x || p.x===m.x+1) && p.y>=m.y+3) dy=1;
+    else if((p.y===m.y || p.y===m.y+1) && p.x<=m.x-2) dx=-1;
+    else if((p.y===m.y || p.y===m.y+1) && p.x>=m.x+3) dx=1;
+    else return null;
+    const tiles=[],landings=[];
+    for(let i=1;i<=8;i++) {
+      const pair=dx ? [{x:dx<0?m.x-i:m.x+1+i,y:m.y},{x:dx<0?m.x-i:m.x+1+i,y:m.y+1}] :
+        [{x:m.x,y:dy<0?m.y-i:m.y+1+i},{x:m.x+1,y:dy<0?m.y-i:m.y+1+i}];
+      if(pair.some(t=>tile(t.x,t.y)==='#')) break;
+      tiles.push(...pair); landings.push({x:m.x+dx*i,y:m.y+dy*i});
+    }
+    return tiles.some(t=>t.x===p.x && t.y===p.y)?{kind:'dive',tiles,landings}:null;
+  }
+  function queenBrood(m,limit) {
+    const living=game.monsters.filter(other=>!other.dead && other.type==='moth').length+
+      game.pendingMonsters.filter(other=>!other.dead && other.type==='moth').length;
+    if(living>=limit) return false;
+    const candidates=queenRing(m).filter(t=>free(t.x,t.y));
+    let added=0;
+    for(let i=living;i<limit && candidates.length;i++) {
+      const index=Math.floor(runRandom()*candidates.length),t=candidates[index];
+      candidates[index]=candidates[candidates.length-1]; candidates.pop();
+      game.pendingMonsters.push(makeMonster('moth',game.nextId++,t.x,t.y,true)); added++;
+    }
+    if(!added) return false;
+    log('The Moth Queen calls her brood.'); sound('brood'); m.rest=m.enraged?1:2;
+    burst(m.x+.5,m.y+.5,PALETTE.p,12,1.4);
+    return true;
+  }
+  function queenTurn(m) {
+    enrageQueen(m);
+    if(m.intent) {
+      const attack=m.intent; m.intent=null;
+      const aimedAt=(x,y)=>attack.tiles.some(t=>t.x===x && t.y===y);
+      if(attack.kind==='dive') {
+        log('The Moth Queen dives!');
+        sound('dive'); shake(.19,230);
+        for(const t of attack.tiles) burst(t.x,t.y,PALETTE.p,2,1.6);
+        if(aimedAt(game.player.x,game.player.y)) hitPlayer(12,m.name,n=>`The Moth Queen dives into you for ${n}!`);
+        for(const other of game.monsters) if(other!==m && !other.dead && monsterTiles(other).some(t=>aimedAt(t.x,t.y))) hitMonster(other,12);
+        if(!m.dead) for(let i=attack.landings.length-1;i>=0;i--) {
+          const t=attack.landings[i];
+          if(queenFits(m,t.x,t.y)) { moveMonster(m,t.x,t.y); break; }
+        }
+      } else if(attack.kind==='dust') {
+        log('The Moth Queen beats her wings!');
+        sound('wings');
+        lunge(motionKey(m),Math.sign(game.player.x-m.x-.5),Math.sign(game.player.y-m.y-.5),.12);
+        for(const t of attack.tiles) burst(t.x,t.y,PALETTE.p,3,1.5);
+        if(aimedAt(game.player.x,game.player.y)) {
+          hitPlayer(8,m.name,n=>`The Moth Queen's wings hit you for ${n}!`); game.dust=5;
+        }
+      }
+      m.rest=m.enraged?1:2;
+      return;
+    }
+    if(m.rest>0) { queenStep(m); m.rest--; return; }
+    const lane=queenLane(m);
+    if(lane) { m.intent=lane; log('The Moth Queen fixes her eyes on you.'); sound('aim'); return; }
+    if(monsterDistance(m,game.player.x,game.player.y,true)<=1) {
+      m.intent={kind:'dust',tiles:queenRing(m)}; log('The Moth Queen raises her wings.'); sound('wings'); return;
+    }
+    if(queenBrood(m,m.enraged?3:2)) return;
+    queenStep(m);
+  }
+  function monsterTurn(m) {
+    if(m.type==='rat') { if(adjacent(m)) melee(m); else stepCloser(m); }
+    else if(m.type==='beetle') {
+      if(m.intent) { explode(m,true); return; }
+      if(adjacent(m)) {
+        const tiles=[];
+        for(let y=m.y-1;y<=m.y+1;y++) for(let x=m.x-1;x<=m.x+1;x++) if(inside(x,y)) tiles.push({x,y});
+        m.intent={kind:'blast',tiles}; log('The fire beetle starts to glow!'); sound('hiss');
+      } else stepCloser(m);
+    } else if(m.type==='archer') archerTurn(m);
+    else if(m.type==='ogre') {
+      if(m.intent) {
+        const t=m.intent.tiles[0]; m.intent=null; m.rest=1;
+        lunge(motionKey(m),Math.sign(t.x-m.x),Math.sign(t.y-m.y),.2); impact(t.x,t.y,'smash');
+        if(t.x===game.player.x && t.y===game.player.y) hitPlayer(7,m.name,n=>`The ogre smashes you for ${n}!`);
+        else {
+          const target=monsterAt(t.x,t.y);
+          if(target) { log(`The ogre smashes the ${target.name} for 7!`); hitMonster(target,7); }
+          else log("The ogre's club strikes stone.");
+        }
+      } else if(m.rest>0) m.rest--;
+      else if(adjacent(m)) { m.intent={kind:'smash',tiles:[{x:game.player.x,y:game.player.y}]}; log('The ogre raises its club!'); sound('windup'); }
+      else { stepCloser(m); m.rest=1; }
+    } else if(m.type==='wraith') {
+      if(adjacent(m)) { melee(m,'touches',3,15); return; }
+      const dx=game.player.x-m.x,dy=game.player.y-m.y;
+      const directions=Math.abs(dx)>=Math.abs(dy)?[[Math.sign(dx),0],[0,Math.sign(dy)]]:[[0,Math.sign(dy)],[Math.sign(dx),0]];
+      for(const [sx,sy] of directions) if((sx || sy) && free(m.x+sx,m.y+sy,true)) { moveMonster(m,m.x+sx,m.y+sy); break; }
+    } else if(m.type==='moth') {
+      if(adjacent(m)) { melee(m,'bites',1,5); return; }
+      if(runRandom()<.3) {
+        const options=DIRS.map(([dx,dy])=>({x:m.x+dx,y:m.y+dy})).filter(t=>free(t.x,t.y));
+        if(options.length) { const t=options[Math.floor(runRandom()*options.length)]; moveMonster(m,t.x,t.y); }
+      } else stepCloser(m);
+    } else if(m.type==='queen') {
+      queenTurn(m);
+    }
+  }
+  function levelUps() {
+    const p=game.player;
+    while(p.xp>=p.xpNext) {
+      p.xp-=p.xpNext; p.level++; p.xpNext=5+5*p.level;
+      p.maxHp+=4; p.hp=Math.min(p.maxHp,p.hp+4);
+      if(p.level%2===0) p.atk++;
+      log(`You reach level ${p.level}.`); callout(`Level ${p.level}`);
+      sound('level'); if(!game.settingUp) burst(p.x,p.y,PALETTE.y,18,1.7);
+    }
+  }
+  function pickUp() {
+    const p=game.player, item=game.items.find(i=>i.x===p.x && i.y===p.y);
+    if(!item) return;
+    if(item.kind==='potion' || item.kind==='bomb') {
+      const field=item.kind==='potion'?'potions':'bombs';
+      if(p[field]>=3) { log(`You cannot carry more ${field}.`); return; }
+      p[field]++; log(`You pick up ${item.kind==='potion'?'a potion':'a bomb'}.`);
+    } else if(item.kind==='oil') { changeOil(p.oil+40); log('You refill your lantern.'); }
+    else if(item.kind==='atk') { p.atk++; log('You find a blade. Attack +1.'); }
+    else if(item.kind==='def') { p.def++; log('You find a shield. Defence +1.'); }
+    game.items=game.items.filter(i=>i!==item);
+    sound('pickup'); burst(p.x,p.y,PALETTE.y,8,1.2);
+  }
+  function advanceClock() {
+    game.turn++;
+    if(game.turn%3===0) changeOil(game.player.oil-1);
+    if(game.dust>0) game.dust--;
+  }
+  function finishTurn() {
+    // Keep this list intact during all monster actions. Dead monsters only get marked.
+    const acting=game.monsters.slice().sort((a,b)=>a.id-b.id);
+    for(const m of acting) {
+      if(game.player.hp<=0) break;
+      if(!m.dead && m.awake) monsterTurn(m);
+    }
+    // Births are appended after the snapshot has acted, so they wait a full turn.
+    game.monsters.push(...game.pendingMonsters); game.pendingMonsters=[];
+    advanceClock();
+    for(const m of game.monsters) if(m.dead && !m.noReward) { game.kills++; game.player.xp+=m.xp; }
+    const fallenQueen=game.boss && game.boss.dead?game.boss:null;
+    game.monsters=game.monsters.filter(m=>!m.dead);
+    if(fallenQueen) winRun(fallenQueen);
+    levelUps();
+    refreshSight();
+    if(game.screen==='won') recordBest();
+    else if(game.player.hp<=0) endRun();
+    else game.cause='';
+  }
+  function act(cmd,fromWalk=false) {
+    if(game.screen!=='play' || game.paused) return false;
+    if(!fromWalk) stopWalk();
+    const p=game.player, directions={up:[0,-1],down:[0,1],left:[-1,0],right:[1,0]};
+    if(Object.hasOwn(directions,cmd)) {
+      const [dx,dy]=directions[cmd], x=p.x+dx,y=p.y+dy;
+      if(dx) p.facing=dx;
+      const target=monsterAt(x,y);
+      if(target) {
+        lunge('player',dx,dy);
+        const damage=Math.max(1,p.atk+Math.floor(runRandom()*3)-1-target.def);
+        log(`You hit the ${target.name} for ${damage}.`);
+        hitMonster(target,damage);
+      } else if(tile(x,y)==='#') { lunge('player',dx,dy,.12); sound('bump'); return false; }
+      else {
+        animateMove('player',p.x,p.y,x,y); burst(p.x,p.y+.3,PALETTE.g,3,.55);
+        p.x=x; p.y=y; sound('step'); pickUp();
+      }
+    } else if(cmd==='descend') {
+      if(!game.stairs || p.x!==game.stairs.x || p.y!==game.stairs.y || game.floor>=8) return false;
+      advanceClock(); loadFloor(game.floor+1); return true;
+    } else if(cmd==='potion') {
+      if(p.potions<=0) { log('You have no potions.'); return false; }
+      if(p.hp>=p.maxHp) { log('You are already at full health.'); return false; }
+      const healed=Math.min(15,p.maxHp-p.hp); p.potions--; p.hp+=healed;
+      log(`You drink a potion and recover ${healed} HP.`);
+      sound('potion'); burst(p.x,p.y,PALETTE.r,10,1); damageNumber(p.x,p.y,'+'+healed,PALETTE.m);
+    } else if(cmd==='bomb') {
+      if(p.bombs<=0) { log('You have no bombs.'); return false; }
+      p.bombs--; log('Your bomb bursts into sparks!');
+      impact(p.x,p.y,'bomb');
+      for(const m of game.monsters) if(!m.dead && monsterDistance(m,p.x,p.y,true)<=2) hitMonster(m,10);
+    } else if(cmd!=='wait') return false;
+    finishTurn(); return true;
+  }
+  function pathTo(x,y,map=game.map,seen=game.seen,start=game.player) {
+    if(!inside(x,y) || at(map,x,y)==='#' || !seen[y*W+x]) return [];
+    const begin=start.y*W+start.x, end=y*W+x, parents=Array(W*H).fill(-1), queue=[begin];
+    parents[begin]=begin;
+    for(let i=0;i<queue.length && parents[end]===-1;i++) {
+      const index=queue[i], cx=index%W,cy=Math.floor(index/W);
+      for(const [dx,dy] of DIRS) {
+        const nx=cx+dx,ny=cy+dy,ni=ny*W+nx;
+        if(inside(nx,ny) && at(map,nx,ny)!=='#' && seen[ni] && parents[ni]===-1) { parents[ni]=index; queue.push(ni); }
+      }
+    }
+    if(parents[end]===-1) return [];
+    const path=[];
+    for(let i=end;i!==begin;i=parents[i]) path.push({x:i%W,y:Math.floor(i/W)});
+    return path.reverse();
+  }
+  function travel(x,y) {
+    stopWalk();
+    if(game.screen!=='play' || game.paused || !inside(x,y)) return 0;
+    if(x===game.player.x && y===game.player.y) return act('wait')?1:0;
+    const target=monsterAt(x,y);
+    if(target && !monsterVisible(target)) return 0;
+    if(!target && (!game.seen[y*W+x] || tile(x,y)==='#')) return 0;
+    const path=target?chasePath(target):pathTo(x,y);
+    if(!path.length) return 0;
+    if(target && path.length===1) {
+      const next=path[0],dx=next.x-game.player.x,dy=next.y-game.player.y;
+      act(dx>0?'right':dx<0?'left':dy>0?'down':'up'); return 1;
+    }
+    game.walk={path,index:0,targetId:target?target.id:null,nextAt:performance.now()+95};
+    return path.length;
+  }
+  function chasePath(target) {
+    const p=game.player,begin=p.y*W+p.x,parents=Array(W*H).fill(-1),queue=[begin];
+    parents[begin]=begin;
+    for(let i=0;i<queue.length;i++) {
+      const index=queue[i],x=index%W,y=Math.floor(index/W);
+      if(adjacent(target,x,y)) {
+        const path=[];
+        for(let j=index;j!==begin;j=parents[j]) path.push({x:j%W,y:Math.floor(j/W)});
+        path.reverse();
+        for(const [dx,dy] of DIRS) if(covers(target,x+dx,y+dy)) { path.push({x:x+dx,y:y+dy}); break; }
+        return path;
+      }
+      for(const [dx,dy] of DIRS) {
+        const nx=x+dx,ny=y+dy,ni=ny*W+nx;
+        if(inside(nx,ny) && tile(nx,ny)!=='#' && game.seen[ni] && parents[ni]===-1 && !monsterAt(nx,ny)) {
+          parents[ni]=index; queue.push(ni);
+        }
+      }
+    }
+    return [];
+  }
+  function advanceWalk(now) {
+    const walk=game.walk;
+    if(!walk || now<walk.nextAt || game.screen!=='play' || game.paused) return;
+    const target=walk.targetId===null?null:game.monsters.find(m=>m.id===walk.targetId && !m.dead);
+    if(walk.targetId!==null && !target) { stopWalk(); return; }
+    const path=target?chasePath(target):walk.path;
+    const next=path[target?0:walk.index];
+    const occupant=next?monsterAt(next.x,next.y):null;
+    if(!next || (occupant && occupant!==target)) { stopWalk(); return; }
+    const dx=next.x-game.player.x,dy=next.y-game.player.y;
+    if(Math.abs(dx)+Math.abs(dy)!==1) { stopWalk(); return; }
+    const cmd=dx>0?'right':dx<0?'left':dy>0?'down':'up';
+    if(occupant===target && target) { act(cmd,true); stopWalk(); return; }
+    if(!act(cmd,true) || game.walk!==walk) { stopWalk(); return; }
+    walk.nextAt=now+95;
+    if(!target) { walk.index++; if(walk.index>=walk.path.length) stopWalk(); }
+  }
+  function teleport(x,y) {
+    if(!inside(x,y) || tile(x,y)==='#' || monsterAt(x,y)) return false;
+    stopInput(); game.player.x=x; game.player.y=y;
+    delete game.visual.motions.player;
+    game.visual.camX=x+.5; game.visual.camY=y+.5; refreshSight(); return true;
+  }
+  function goto(n) {
+    if(!Number.isInteger(n) || n<1 || n>8) return false;
+    if(game.screen!=='play') { game.screen='play'; game.paused=false; if(game.player.hp<=0) game.player.hp=game.player.maxHp; }
+    loadFloor(n); return true;
+  }
+  function spawn(type,x,y) {
+    if(!Object.hasOwn(MONSTER_STATS,type) || !inside(x,y)) return null;
+    const m=makeMonster(type,game.nextId,x,y,true);
+    if(type==='queen' ? game.boss!==null || !queenFits(m,x,y) : !free(x,y,type==='wraith')) return null;
+    game.nextId++;
+    if(type==='queen') { game.boss=m; game.bossAnnounced=false; }
+    game.monsters.push(m); refreshSight(); return m;
+  }
+  function give(kind,n=1) {
+    if(!Number.isFinite(n) || n<0) return false;
+    n=Math.floor(n); const p=game.player;
+    if(kind==='potion') p.potions=Math.min(3,p.potions+n);
+    else if(kind==='bomb') p.bombs=Math.min(3,p.bombs+n);
+    else if(kind==='oil') changeOil(p.oil+n);
+    else if(kind==='atk') p.atk+=n;
+    else if(kind==='def') p.def+=n;
+    else if(kind==='xp') { p.xp+=n; levelUps(); }
+    else return false;
+    refreshSight(); return true;
+  }
+  function screenOf(x,y) {
+    const {width,height,size}=game.view;
+    return {x:width/2+(x+.5-game.visual.camX)*size+game.visual.shakeX, y:height/2+(y+.5-game.visual.camY)*size+game.visual.shakeY,size};
+  }
+  Object.assign(game,{start,restart,act,travel,teleport,goto,spawn,give,screenOf,tile});
+
+  function pause(value=!game.paused) {
+    if(game.screen!=='play') return;
+    game.paused=value; game.ui.restartUntil=0; stopInput(); syncAudio(); updateDOM(performance.now());
+  }
+  function toggleSound(value=!game.sound) {
+    game.sound=!!value;
+    try { localStorage.setItem('deepwick.sound',String(game.sound)); } catch (_) {}
+    $('soundToggle').checked=game.sound;
+    syncAudio();
+  }
+  function button(id,handler) {
+    $(id).addEventListener('click',event=>{
+      stopInput(); handler(); event.currentTarget.blur(); updateDOM(performance.now());
+    });
+  }
+  button('playButton',start);
+  button('againButton',start);
+  button('pauseButton',()=>pause());
+  button('resumeButton',()=>pause(false));
+  button('waitButton',()=>act('wait'));
+  button('potionButton',()=>act('potion'));
+  button('bombButton',()=>act('bomb'));
+  button('descendButton',()=>act('descend'));
+  button('restartButton',()=>{
+    const now=performance.now();
+    if(game.ui.restartUntil>now) restart();
+    else game.ui.restartUntil=now+5000;
+  });
+  $('soundToggle').addEventListener('change',event=>{ toggleSound(event.target.checked); event.target.blur(); });
+  // HTML/body disable native panning; overflowing overlays still support a touch drag.
+  for(const panel of document.querySelectorAll('.screen')) {
+    panel.addEventListener('pointerdown',event=>{
+      if(event.pointerType!=='touch' || event.target.closest('button,input,label') || panel.scrollHeight<=panel.clientHeight) return;
+      game.input.panelScroll={id:event.pointerId,y:event.clientY,top:panel.scrollTop,panel};
+      panel.setPointerCapture(event.pointerId);
+    });
+    panel.addEventListener('pointermove',event=>{
+      const scroll=game.input.panelScroll;
+      if(scroll && scroll.id===event.pointerId && scroll.panel===panel) {
+        panel.scrollTop=scroll.top+scroll.y-event.clientY; event.preventDefault();
+      }
+    });
+    const finish=()=>{ game.input.panelScroll=null; };
+    panel.addEventListener('pointerup',finish); panel.addEventListener('pointercancel',finish);
+  }
+  const keyDirections={ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right',w:'up',s:'down',a:'left',d:'right'};
+  window.addEventListener('keydown',primeAudio,true);
+  window.addEventListener('pointerdown',primeAudio,true);
+  window.addEventListener('keydown',event=>{
+    stopWalk();
+    if(event.ctrlKey || event.metaKey || event.altKey || event.target.tagName==='INPUT') return;
+    if(event.target.tagName==='BUTTON' && (event.key==='Enter' || event.key===' ')) {
+      stopWalk();
+      document.body.classList.add('keyboard');
+      if(event.repeat) event.preventDefault();
+      return; // Preserve native keyboard activation of the real buttons.
+    }
+    const key=event.key.length===1?event.key.toLowerCase():event.key, direction=keyDirections[key];
+    if(direction || [' ','Enter','.','>'].includes(key)) event.preventDefault();
+    if(event.repeat) return;
+    document.body.classList.add('keyboard'); stopWalk();
+    if(key==='m') { toggleSound(); return; }
+    if(game.screen==='title') { if(key==='Enter' || key===' ') start(); return; }
+    if(game.screen==='dead' || game.screen==='won') {
+      const delay=game.screen==='won'?2200:900;
+      if(performance.now()-game.ui.endAt>=delay && (key==='Enter' || key===' ')) start();
+      return;
+    }
+    if(key==='p') { pause(); return; }
+    if(key==='Escape') { if(game.paused) pause(false); return; }
+    if(game.paused) return;
+    if(direction) {
+      game.input.held={key,cmd:direction}; game.input.nextRepeat=performance.now()+230;
+      act(direction); return;
+    }
+    game.input.held=null;
+    if(key===' ' || key==='.') act('wait');
+    else if(key==='q' || key==='1') act('potion');
+    else if(key==='e' || key==='2') act('bomb');
+    else if(key==='Enter' || key==='>') act('descend');
+  });
+  window.addEventListener('keyup',event=>{
+    const key=event.key.length===1?event.key.toLowerCase():event.key;
+    if(game.input.held?.key===key) game.input.held=null;
+  });
+  window.addEventListener('blur',()=>{ game.focused=false; stopInput(); syncAudio(); });
+  window.addEventListener('focus',()=>{ game.focused=true; syncAudio(); });
+  window.addEventListener('pointerdown',event=>{ if(event.target.closest('button,label')) stopInput(); },true);
+  document.addEventListener('visibilitychange',()=>{ if(document.hidden) stopInput(); syncAudio(); });
+  function pointToTile(clientX,clientY) {
+    const r=canvas.getBoundingClientRect(), {width,height,size}=game.view;
+    return {x:Math.floor((clientX-r.left-width/2-game.visual.shakeX)/size+game.visual.camX),y:Math.floor((clientY-r.top-height/2-game.visual.shakeY)/size+game.visual.camY)};
+  }
+  canvas.addEventListener('pointerdown',event=>{
+    if(event.button!==0 || !event.isPrimary) return;
+    stopInput();
+    game.input.pointer={id:event.pointerId,x:event.clientX,y:event.clientY};
+    canvas.setPointerCapture(event.pointerId);
+  });
+  canvas.addEventListener('pointerup',event=>{
+    const pointer=game.input.pointer; game.input.pointer=null;
+    if(!pointer || pointer.id!==event.pointerId || game.screen!=='play' || game.paused) return;
+    const dx=event.clientX-pointer.x,dy=event.clientY-pointer.y;
+    if(Math.hypot(dx,dy)>=24) act(Math.abs(dx)>Math.abs(dy)?dx>0?'right':'left':dy>0?'down':'up');
+    else { const p=pointToTile(event.clientX,event.clientY); travel(p.x,p.y); }
+  });
+  canvas.addEventListener('pointercancel',()=>{ game.input.pointer=null; });
+  window.addEventListener('mousemove',()=>document.body.classList.remove('keyboard'));
+  canvas.addEventListener('pointermove',event=>{
+    if(event.pointerType==='mouse') game.input.hover={...pointToTile(event.clientX,event.clientY),screenX:event.clientX,screenY:event.clientY};
+  });
+  canvas.addEventListener('pointerleave',()=>{ game.input.hover=null; });
+  canvas.addEventListener('contextmenu',event=>event.preventDefault());
+  function resize() {
+    const width=window.innerWidth,height=window.innerHeight,dpr=Math.min(3,window.devicePixelRatio||1);
+    const target=Math.min(width,height)<520?12:15;
+    const pixel=Math.max(1,Math.floor(Math.min(width,height)*dpr/(target*8)));
+    game.view={width,height,dpr,size:8*pixel/dpr};
+    canvas.width=Math.round(width*dpr); canvas.height=Math.round(height*dpr);
+    ctx.setTransform(dpr,0,0,dpr,0,0); ctx.imageSmoothingEnabled=false;
+    game.input.hover=null;
+  }
+  window.addEventListener('resize',resize);
+  function initDemo() {
+    const f=makeFloor(4242,2), seen=Array(W*H).fill(1);
+    const route=[{...f.entry},...pathTo(f.stairs.x,f.stairs.y,f.map,seen,f.entry)];
+    game.demo={...f,seen,visible:[],route,progress:0,x:f.entry.x,y:f.entry.y,facing:1};
+    game.visual.camX=f.entry.x+.5; game.visual.camY=f.entry.y+.5;
+  }
+  function updateVisual(now) {
+    const dt=game.paused?0:Math.min(.05,Math.max(0,(now-game.visual.lastFrame)/1000));
+    game.visual.lastFrame=now; game.visual.time+=dt*1000;
+    if(!game.paused && now-game.ui.calloutAt>=2100 && game.ui.callouts.length) {
+      game.ui.callout=game.ui.callouts.shift(); game.ui.calloutAt=now;
+    }
+    if(game.screen==='title') {
+      const d=game.demo, length=d.route.length-1;
+      if(length>0) {
+        d.progress=(d.progress+dt*2.2)%(length*2);
+        const progress=d.progress<=length?d.progress:length*2-d.progress;
+        const i=Math.min(length-1,Math.floor(progress)), t=progress-i, a=d.route[i],b=d.route[i+1];
+        const oldX=d.x; d.x=a.x+(b.x-a.x)*t; d.y=a.y+(b.y-a.y)*t;
+        if(d.x!==oldX) d.facing=d.x>oldX?1:-1;
+      }
+      d.visible=sightFor(d.map,Math.round(d.x),Math.round(d.y),6);
+      game.visual.camX=d.x+.5;
+      game.visual.camY=d.y+.5-game.view.height*.17/game.view.size;
+    } else {
+      const ease=game.visual.reduced?1:1-Math.exp(-dt*17);
+      const drawn=actorPosition('player',game.player.x,game.player.y);
+      game.visual.camX+=(drawn.x+.5-game.visual.camX)*ease;
+      game.visual.camY+=(drawn.y+.5-game.visual.camY)*ease;
+      game.visual.light+=(game.light-game.visual.light)*ease;
+    }
+    for(const [key,motion] of Object.entries(game.visual.motions)) if(game.visual.time-motion.at>=motion.duration) delete game.visual.motions[key];
+    for(const particle of game.visual.particles) {
+      particle.age+=dt; particle.x+=particle.vx*dt; particle.y+=particle.vy*dt; particle.vy+=particle.gravity*dt;
+    }
+    game.visual.particles=game.visual.particles.filter(p=>p.age<p.life);
+    for(const number of game.visual.numbers) number.age+=dt;
+    game.visual.numbers=game.visual.numbers.filter(n=>n.age<n.life);
+    const centre=game.screen==='title'?game.demo:actorPosition('player',game.player.x,game.player.y),radius=game.visual.light;
+    while(game.visual.motes.length<28) game.visual.motes.push(newMote(centre.x,centre.y,radius));
+    for(let i=0;i<game.visual.motes.length;i++) {
+      const mote=game.visual.motes[i]; mote.age+=dt;
+      if(!game.visual.reduced) { mote.x+=mote.vx*dt; mote.y+=mote.vy*dt; }
+      if(mote.age>=mote.life || Math.hypot(mote.x-centre.x,mote.y-centre.y)>radius+1.5) game.visual.motes[i]=newMote(centre.x,centre.y,radius);
+    }
+    const age=(game.visual.time-game.visual.shakeAt)/game.visual.shakeLength;
+    if(!game.visual.reduced && age>=0 && age<1 && !game.paused) {
+      const amplitude=(1-age)**2*game.visual.shakePower*game.view.size;
+      game.visual.shakeX=(Math.random()*2-1)*amplitude; game.visual.shakeY=(Math.random()*2-1)*amplitude;
+    } else if(!game.paused || game.visual.reduced) {
+      game.visual.shakeX=0; game.visual.shakeY=0; game.visual.shakePower=0;
+    }
+  }
+  function newMote(x,y,radius) {
+    const angle=Math.random()*Math.PI*2,distance=Math.sqrt(Math.random())*radius;
+    return {x:x+Math.cos(angle)*distance,y:y+Math.sin(angle)*distance,vx:(Math.random()-.5)*.09,vy:-.04-Math.random()*.07,
+      age:0,life:3+Math.random()*4,phase:Math.random()*Math.PI*2};
+  }
+  function drawSprite(name,x,y,biome=0,facing=1,scale=1,alpha=1) {
+    const p=screenOf(x,y), size=p.size*scale, dpr=game.view.dpr;
+    const left=Math.round((p.x-p.size/2)*dpr)/dpr,top=Math.round((p.y-p.size/2)*dpr)/dpr;
+    ctx.save(); ctx.globalAlpha=alpha;
+    if(facing<0) { ctx.translate(left+size,top); ctx.scale(-1,1); ctx.drawImage(sprites[biome][name],0,0,size,size); }
+    else ctx.drawImage(sprites[biome][name],left,top,size,size);
+    ctx.restore();
+  }
+  function drawMonster(m,biome,now) {
+    let alpha=m.type==='wraith' ? .48+.17*Math.sin(now*.004+m.id) : 1;
+    if(m.type==='beetle' && m.intent) alpha*=.65+.35*Math.sin(now*.022)**2;
+    const p=actorPosition(motionKey(m),m.x,m.y);
+    drawSprite(m.type+(now<m.flashUntil?'Hit':''),p.x,p.y,biome,m.facing,m.type==='queen'?2:1,alpha);
+  }
+  function drawHealth(m,now) {
+    const p=actorPosition(motionKey(m),m.x,m.y);
+    const s=screenOf(p.x,p.y),pixel=s.size/8,count=Math.min(8,m.maxHp),lit=Math.ceil(m.hp/m.maxHp*count);
+    const gap=pixel*.35,pip=(s.size-(count-1)*gap)/count;
+    const y=s.y-s.size*.68;
+    for(let i=0;i<count;i++) {
+      ctx.fillStyle=i<lit?(m.type==='wraith'?'#bf94ea':'#ffd25e'):'#302433';
+      ctx.fillRect(Math.round((s.x-s.size/2+i*(pip+gap))*game.view.dpr)/game.view.dpr,y,pip,pixel*.65);
+    }
+  }
+  function tileHash(x,y) {
+    let h=Math.imul(x+1,374761393)^Math.imul(y+1,668265263);
+    h=Math.imul(h^(h>>>13),1274126177);
+    return (h^(h>>>16))>>>0;
+  }
+  function rectFor(x,y) {
+    const p=screenOf(x,y), d=game.view.dpr;
+    return {x:Math.round((p.x-p.size/2)*d)/d,y:Math.round((p.y-p.size/2)*d)/d,size:p.size};
+  }
+  function draw(now) {
+    // Rendering reads game. All simulation and animation state is updated before this call.
+    const title=game.screen==='title', world=title?game.demo:game;
+    const map=world.map, seen=world.seen, visible=world.visible;
+    const player=title?world:{...actorPosition('player',game.player.x,game.player.y),facing:game.player.facing};
+    const number=title?2:game.floor, biome=number>=7?2:number>=4?1:0;
+    const {width,height,size,dpr}=game.view, pixel=size/8;
+    ctx.fillStyle='#060510'; ctx.fillRect(0,0,width,height);
+    const startX=Math.max(0,Math.floor(game.visual.camX-width/size/2)-1),endX=Math.min(W-1,Math.ceil(game.visual.camX+width/size/2)+1);
+    const startY=Math.max(0,Math.floor(game.visual.camY-height/size/2)-1),endY=Math.min(H-1,Math.ceil(game.visual.camY+height/size/2)+1);
+    for(let y=startY;y<=endY;y++) for(let x=startX;x<=endX;x++) {
+      if(!seen[y*W+x]) continue;
+      const t=at(map,x,y), r=rectFor(x,y);
+      if(t!=='#') {
+        const h=tileHash(x,y)%100;
+        drawSprite(h<72?'floor0':h<86?'floor1':'floor2',x,y,biome);
+        if(t==='>') {
+          drawSprite('stairs',x,y,biome);
+          ctx.strokeStyle=`rgba(255,210,94,${.13+.08*Math.sin(now*.0025)})`;
+          ctx.lineWidth=1/dpr; ctx.strokeRect(r.x+pixel/2,r.y+pixel/2,size-pixel,size-pixel);
+        }
+      } else if(at(map,x,y+1)!=='#') drawSprite('wallFace',x,y,biome);
+      else {
+        let touches=false;
+        for(let dy=-1;dy<=1;dy++) for(let dx=-1;dx<=1;dx++) if(at(map,x+dx,y+dy)!=='#') touches=true;
+        if(!touches) continue;
+        drawSprite('wallTop',x,y,biome);
+        ctx.fillStyle=biome===2?'#87586f':biome===1?'#66836f':PALETTE.l;
+        if(at(map,x-1,y)!=='#') ctx.fillRect(r.x,r.y,pixel,size);
+        if(at(map,x+1,y)!=='#') ctx.fillRect(r.x+size-pixel,r.y,pixel,size);
+        if(at(map,x,y-1)!=='#') ctx.fillRect(r.x,r.y,size,pixel);
+      }
+    }
+    if(!title && game.input.hover && !game.paused && !game.input.pointer && !document.body.classList.contains('keyboard')) {
+      const h=pointToTile(game.input.hover.screenX,game.input.hover.screenY),target=monsterAt(h.x,h.y);
+      const path=target && monsterVisible(target)?chasePath(target):pathTo(h.x,h.y);
+      ctx.fillStyle='rgba(255,210,94,.28)';
+      for(const p of path) {
+        if(monsterAt(p.x,p.y)) break;
+        const s=screenOf(p.x,p.y); ctx.fillRect(s.x-pixel/2,s.y-pixel/2,pixel,pixel);
+      }
+    }
+    // Show any visible portion of an attack, including an arrow from outside the light.
+    if(!title) for(const m of world.monsters) if(!m.dead && m.intent) {
+      ctx.fillStyle=`rgba(${m.intent.kind==='blast'?'255,130,30':m.intent.kind==='dust'?'190,120,255':'255,50,50'},${.3+.07*Math.sin(now*.008)})`;
+      for(const t of m.intent.tiles) if(inside(t.x,t.y) && visible[t.y*W+t.x]) { const r=rectFor(t.x,t.y); ctx.fillRect(r.x,r.y,size,size); }
+    }
+    for(const item of world.items) if(visible[item.y*W+item.x]) drawSprite(item.kind,item.x,item.y+Math.sin(now*.003+item.x)*.035,biome);
+    for(const m of world.monsters) if(m.type!=='wraith' && !m.dead && (title?visible[m.y*W+m.x]:monsterVisible(m))) drawMonster(m,biome,now);
+    drawSprite('player',player.x,player.y,biome,player.facing);
+    if(title) for(let i=0;i<3;i++) {
+      const angle=(game.visual.reduced?0:game.visual.time*.0014)+i*Math.PI*2/3,radius=1+i*.3;
+      drawSprite('moth',player.x+Math.cos(angle)*radius,player.y+Math.sin(angle)*radius*.65,biome,Math.sin(angle)>0?-1:1,1,.85);
+    }
+    const radius=game.visual.light, lantern=screenOf(player.x,player.y);
+    for(let y=startY;y<=endY;y++) for(let x=startX;x<=endX;x++) {
+      if(!seen[y*W+x]) continue;
+      const r=rectFor(x,y);
+      if(!visible[y*W+x]) ctx.fillStyle='rgba(4,6,20,.8)';
+      else {
+        const t=Math.max(0,Math.min(1,(Math.hypot(x-player.x,y-player.y)-1.5)/(radius-1)));
+        ctx.fillStyle=`rgba(6,5,16,${.72*Math.round(5*t)/5})`;
+      }
+      ctx.fillRect(r.x,r.y,size,size);
+    }
+    // The amber overlay is essential: the lantern lights the stone with warm colour.
+    ctx.save();
+    ctx.globalCompositeOperation='overlay';
+    const flicker=1+.012*Math.sin(now*.007)+.008*Math.sin(now*.019), reach=(radius+.6)*size*flicker;
+    const glow=ctx.createRadialGradient(lantern.x,lantern.y,0,lantern.x,lantern.y,reach);
+    glow.addColorStop(0,'rgba(255,160,64,.62)'); glow.addColorStop(.55,'rgba(255,130,50,.32)'); glow.addColorStop(1,'rgba(255,130,50,0)');
+    ctx.fillStyle=glow; ctx.beginPath(); ctx.arc(lantern.x,lantern.y,reach,0,Math.PI*2); ctx.fill();
+    ctx.globalCompositeOperation='lighter';
+    const bloomX=lantern.x+player.facing*size*.32,bloomY=lantern.y+size*.12;
+    const bloom=ctx.createRadialGradient(bloomX,bloomY,0,bloomX,bloomY,size*.55);
+    bloom.addColorStop(0,'rgba(255,190,75,.22)'); bloom.addColorStop(1,'rgba(255,140,40,0)');
+    ctx.fillStyle=bloom; ctx.fillRect(bloomX-size*.55,bloomY-size*.55,size*1.1,size*1.1);
+    ctx.restore();
+    drawFloatingLight(visible,player);
+    // A wraith is visible through stone, without revealing the tiles around it.
+    if(!title) for(const m of world.monsters) if(m.type==='wraith' && monsterVisible(m)) drawMonster(m,biome,now);
+    for(const item of world.items) if(seen[item.y*W+item.x] && !visible[item.y*W+item.x]) drawSprite(item.kind,item.x,item.y,biome,1,1,.6);
+    if(!title) for(const m of world.monsters) if(m.type!=='queen' && monsterVisible(m) && m.awake) drawHealth(m,now);
+    // Intent corner marks go above the veil and never obscure a creature's centre.
+    if(!title) for(const m of world.monsters) if(!m.dead && m.intent) {
+      ctx.strokeStyle=`rgba(${m.intent.kind==='blast'?'255,170,65':m.intent.kind==='dust'?'205,150,255':'255,90,80'},${.65+.25*Math.sin(now*.008)})`;
+      ctx.lineWidth=pixel; const inset=pixel*.8,arm=pixel*1.4;
+      for(const t of m.intent.tiles) if(inside(t.x,t.y) && visible[t.y*W+t.x]) {
+        const r=rectFor(t.x,t.y);
+        ctx.beginPath();
+        for(const [a,b] of [[0,0],[1,0],[0,1],[1,1]]) {
+          const cx=r.x+(a?size-inset:inset),cy=r.y+(b?size-inset:inset);
+          ctx.moveTo(cx+(a?-arm:arm),cy); ctx.lineTo(cx,cy); ctx.lineTo(cx,cy+(b?-arm:arm));
+        }
+        ctx.stroke();
+      }
+    }
+    if(!title) drawNumbers();
+    if(!title) drawScreenEffects();
+    if(title) { ctx.fillStyle='rgba(5,4,12,.23)'; ctx.fillRect(0,0,width,height); }
+  }
+  function drawFloatingLight(visible,player) {
+    const {dpr,size}=game.view;
+    ctx.save();
+    for(const mote of game.visual.motes) {
+      const x=Math.round(mote.x),y=Math.round(mote.y);
+      if(!inside(x,y) || !visible[y*W+x] || Math.hypot(mote.x-player.x,mote.y-player.y)>game.visual.light) continue;
+      const s=screenOf(mote.x,mote.y),fade=Math.min(1,mote.age/.5,(mote.life-mote.age)/.7);
+      ctx.globalAlpha=Math.max(0,fade)*(.13+.09*Math.sin(game.visual.time*.0018+mote.phase));
+      ctx.fillStyle=PALETTE.y;
+      const pixel=Math.max(1,Math.round(size/12*dpr))/dpr;
+      ctx.fillRect(Math.round(s.x*dpr)/dpr,Math.round(s.y*dpr)/dpr,pixel,pixel);
+    }
+    for(const particle of game.visual.particles) {
+      const x=Math.round(particle.x),y=Math.round(particle.y);
+      if(!inside(x,y) || !visible[y*W+x]) continue;
+      const s=screenOf(particle.x,particle.y),pixel=Math.max(1,Math.round(particle.size*size/8*dpr))/dpr;
+      ctx.globalAlpha=(1-particle.age/particle.life)*.85; ctx.fillStyle=particle.color;
+      ctx.fillRect(Math.round(s.x*dpr)/dpr,Math.round(s.y*dpr)/dpr,pixel,pixel);
+    }
+    ctx.restore();
+  }
+  function drawNumbers() {
+    ctx.save(); ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.font=`bold ${Math.max(11,Math.round(game.view.size*.38))}px ui-monospace, Menlo, Consolas, monospace`;
+    ctx.lineWidth=Math.max(2,game.view.size/12); ctx.strokeStyle='#0e0d18';
+    for(const number of game.visual.numbers) {
+      const rise=game.visual.reduced ? .3 : .3+number.age*.8,s=screenOf(number.x,number.y-rise);
+      ctx.globalAlpha=Math.min(1,(number.life-number.age)/.3); ctx.fillStyle=number.color;
+      ctx.strokeText(number.text,s.x,s.y); ctx.fillText(number.text,s.x,s.y);
+    }
+    ctx.restore();
+  }
+  function drawScreenEffects() {
+    const {width,height}=game.view,time=game.visual.time;
+    const hurt=Math.max(0,1-(time-game.visual.hurtAt)/420)*.4;
+    const low=game.screen!=='won' && game.player.hp/game.player.maxHp<.3 ? .08+.07*(1+Math.sin(time*.0025)) : 0;
+    if(hurt+low>0) {
+      const edge=ctx.createRadialGradient(width/2,height/2,Math.min(width,height)*.2,width/2,height/2,Math.hypot(width,height)*.55);
+      edge.addColorStop(0,'rgba(196,52,63,0)'); edge.addColorStop(.5,`rgba(196,52,63,${(hurt+low)*.12})`); edge.addColorStop(1,`rgba(196,52,63,${Math.min(.7,hurt+low)})`);
+      ctx.fillStyle=edge; ctx.fillRect(0,0,width,height);
+    }
+    if(game.screen==='won' && game.visual.queenFall) {
+      const elapsed=(game.visual.time-game.visual.queenFall.effectAt)/1000;
+      const fall=game.visual.queenFall,s=screenOf(fall.x,fall.y);
+      const reach=Math.max(1,Math.min(1,Math.max(0,elapsed)/1.6)*Math.hypot(width,height)*1.5);
+      const gold=ctx.createRadialGradient(s.x,s.y,0,s.x,s.y,reach);
+      gold.addColorStop(0,'rgba(255,210,94,.65)'); gold.addColorStop(.6,'rgba(255,175,55,.3)'); gold.addColorStop(1,'rgba(255,175,55,0)');
+      ctx.save(); ctx.globalCompositeOperation='lighter'; ctx.fillStyle=gold; ctx.fillRect(0,0,width,height); ctx.restore();
+    }
+    const fade=1-Math.min(1,Math.max(0,(time-game.visual.floorAt)/450));
+    if(fade>0) { ctx.fillStyle=`rgba(0,0,0,${fade})`; ctx.fillRect(0,0,width,height); }
+  }
+  function setText(id,text) { if($(id).textContent!==text) $(id).textContent=text; }
+  function updateDOM(now) {
+    const p=game.player, title=game.screen==='title', ended=game.screen==='dead' || game.screen==='won';
+    const endReady=ended && now-game.ui.endAt>=(game.screen==='won'?2200:900);
+    $('hud').hidden=title;
+    $('overlay').hidden=!title && !game.paused && !endReady;
+    $('overlay').classList.toggle('title',title);
+    $('titleScreen').hidden=!title; $('pauseScreen').hidden=!game.paused; $('endScreen').hidden=!endReady;
+    $('pauseButton').disabled=ended;
+    const boss=game.boss;
+    $('bossBox').hidden=title || !boss || !boss.awake || boss.dead;
+    $('bossBox').classList.toggle('enraged',!!(boss && boss.enraged));
+    if(boss) {
+      $('bossHealth').firstElementChild.style.width=`${Math.max(0,boss.hp)/boss.maxHp*100}%`;
+      $('bossHealth').lastElementChild.textContent=`${boss.hp} / ${boss.maxHp}`;
+    }
+    const hp=$('hp'),oil=$('oil');
+    hp.firstElementChild.style.width=`${Math.max(0,p.hp)/p.maxHp*100}%`; hp.lastElementChild.textContent=`${p.hp} / ${p.maxHp}`;
+    oil.firstElementChild.style.width=`${p.oil}%`; oil.lastElementChild.textContent=`Oil ${p.oil}`;
+    $('xpFill').style.width=`${Math.min(100,p.xp/p.xpNext*100)}%`;
+    setText('floorText',`Floor ${game.floor} / 8`); setText('level',`Lv ${p.level}`); setText('combatText',`Atk ${p.atk} · Def ${p.def}`);
+    $('descendButton').hidden=game.floor>=8 || !game.stairs || p.x!==game.stairs.x || p.y!==game.stairs.y || ended;
+    $('waitButton').disabled=ended;
+    $('potionButton').disabled=ended || p.potions<=0; $('bombButton').disabled=ended || p.bombs<=0;
+    setText('potionCount',String(p.potions)); setText('bombCount',String(p.bombs));
+    const signature=game.log.slice(-3).join('\n');
+    if(signature!==$('log').dataset.signature) {
+      $('log').dataset.signature=signature;
+      $('log').replaceChildren(...game.log.slice(-3).map(text=>{ const line=document.createElement('div'); line.textContent=text; return line; }));
+    }
+    const age=now-game.ui.calloutAt;
+    $('callout').hidden=title || game.paused || game.screen==='dead' || endReady || !game.ui.callout || age>=2100;
+    setText('callout',game.ui.callout);
+    $('callout').style.opacity=String(Math.max(0,Math.min(1,age/180,(2100-age)/450)));
+    const confirm=game.ui.restartUntil>now;
+    setText('restartButton',confirm?'Confirm restart':'Restart'); $('restartButton').setAttribute('aria-label',confirm?'Confirm restart':'Restart');
+    $('soundToggle').checked=game.sound;
+    const line=bestLine();
+    for(const id of ['titleBest','endBest']) { setText(id,line); $(id).hidden=!line; }
+    $('practiceNote').hidden=!game.practice;
+    if(endReady) {
+      setText('endHeading',game.screen==='won'?'Deepwick cleared':'You fell');
+      setText('endCause',game.cause);
+      setText('endStats',`${game.screen==='won'?`Cleared in ${game.turn.toLocaleString('en-US')} turns`:`Turn ${game.turn.toLocaleString('en-US')}`} · Level ${p.level} · ${game.kills} ${game.kills===1?'kill':'kills'}`);
+    }
+    const h=game.input.hover,hover=$('hover');
+    const t=h?pointToTile(h.screenX,h.screenY):null,monster=t?monsterAt(t.x,t.y):null;
+    const show=!!(h && monster && monsterVisible(monster) && !title && !ended && !game.paused && !game.input.pointer && !document.body.classList.contains('keyboard'));
+    hover.hidden=!show;
+    if(show) {
+      setText('hover',`${monster.name} · ${monster.hp} / ${monster.maxHp} HP`);
+      hover.style.left=`${Math.max(5,Math.min(game.view.width-hover.offsetWidth-5,h.screenX+14))}px`;
+      hover.style.top=`${Math.max(5,Math.min(game.view.height-hover.offsetHeight-5,h.screenY+18))}px`;
+    }
+  }
+  function frame(now) {
+    if(game.input.held && game.screen==='play' && !game.paused && now>=game.input.nextRepeat) {
+      game.input.nextRepeat=now+125; act(game.input.held.cmd);
+    }
+    advanceWalk(now); updateVisual(now); audioTick(now); draw(now); updateDOM(now);
+    requestAnimationFrame(frame);
+  }
+  resize(); initDemo();
+  if(practiceFloor!==null) start();
+  updateDOM(performance.now()); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
