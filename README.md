@@ -2,7 +2,7 @@
 
 A turn-based dungeon crawler in pixel art, in one HTML file, built by a single prompt on Codex (GPT-6.1 Sol).
 
-Play it: https://gradedprompts.github.io/deepwick/
+Play it: https://games.gradedprompts.com/deepwick/
 
 `index.html` is the unedited output of one run of the prompt. Nothing was changed by hand after the run.
 SHA-256: `636d81a9547a9d41711a8aa80e77d263e2d0fc588c7d2414e987e064d1bfca40`
